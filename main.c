@@ -12,7 +12,7 @@
 #define WINDOW_HEIGHT 600
 
 #define ROUND_MAX_SCORE 11
-#define ROUND_END_TIMEOUT 6 // seconds
+#define ROUND_OVER_TIMEOUT 6 // seconds
 
 #define PADDLE_WIDTH 10
 #define PADDLE_HEIGHT 50
@@ -284,7 +284,7 @@ void update_game_timeout(struct game *game, double elapsed_time) {
 void check_round_over(struct game *game) {
     if (game->round_over_timeout == 0 && (game->paddle_1.score == ROUND_MAX_SCORE ||
                                           game->paddle_2.score == ROUND_MAX_SCORE)) {
-        game->round_over_timeout = ROUND_END_TIMEOUT;
+        game->round_over_timeout = ROUND_OVER_TIMEOUT;
     }
 }
 

@@ -1,8 +1,8 @@
 # SDL Pong
 
 An attempt at recreating the [Pong](https://en.wikipedia.org/wiki/Pong) game
-from 1972 (with sound) in C using only the
-[SDL](https://en.wikipedia.org/wiki/Simple_DirectMedia_Layer) library.
+from 1972 (with sound) in C using only the [SDL](https://www.libsdl.org/)
+library.
 
 You can watch a recording of 1972 Pong here:
 [Original Atari PONG (1972) arcade machine gameplay video - YouTube](https://www.youtube.com/watch?v=fiShX2pTz9A).
