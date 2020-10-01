@@ -431,7 +431,7 @@ int main() {
 
     bool running = true;
 
-    uint64_t counter_time = 0;
+    uint64_t counter_time = SDL_GetPerformanceCounter();
 
     struct game game = {.paddle_1 = make_paddle(1),
                         .paddle_2 = make_paddle(2),
