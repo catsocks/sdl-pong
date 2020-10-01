@@ -24,7 +24,7 @@
 #define BALL_SPEED_INITIAL_X 300  // px per second
 #define BALL_SPEED_MAX_X 540      // px per second
 #define BALL_SPEED_INCREMENT_X 20 // px per second
-#define BALL_SERVE_DELAY 2    // seconds
+#define BALL_SERVE_DELAY 2        // seconds
 
 #define SCORE_Y 50
 #define SCORE_SCREEN_MARGIN_X 150
@@ -62,7 +62,7 @@ struct ball {
     float x, y;
     float velocity_x, velocity_y;
     SDL_Rect rect;
-    int last_paddle_no_hit;
+    int last_paddle_hit;
     float serve_delay;
 };
 
@@ -72,6 +72,10 @@ struct game {
     struct ball ball;
     float round_over_timeout;
 };
+
+int clamp(int x, int min, int max) {
+    return x < min ? min : x > max ? max : x;
+}
 
 int randrange(int min, int max) {
     return min + rand() / (RAND_MAX / (max - min + 1) + 1);
@@ -117,11 +121,7 @@ struct paddle make_paddle(int no) {
 void update_paddle(struct paddle *paddle, double elapsed_time) {
     paddle->y += paddle->velocity * elapsed_time;
 
-    if (paddle->y < 0) {
-        paddle->y = 0;
-    } else if (paddle->y + PADDLE_HEIGHT > WINDOW_HEIGHT) {
-        paddle->y = WINDOW_HEIGHT - PADDLE_HEIGHT;
-    }
+    paddle->y = clamp(paddle->y, 0, WINDOW_HEIGHT - PADDLE_HEIGHT);
 
     paddle->rect.y = roundf(paddle->y);
 }
@@ -153,7 +153,7 @@ void serve_ball(struct ball *ball, int paddle_no, bool round_over) {
 
     ball->velocity_y = randrange(-BALL_SPEED_Y, BALL_SPEED_Y);
 
-    ball->last_paddle_no_hit = 0;
+    ball->last_paddle_hit = 0;
 
     ball->rect.x = roundf(ball->x);
     ball->rect.y = roundf(ball->y);
@@ -172,7 +172,7 @@ void update_ball(struct game *game, struct audio *audio, struct ball *ball,
     ball->x += ball->velocity_x * elapsed_time;
     ball->y += ball->velocity_y * elapsed_time;
 
-    // The ball will always bounce off vertical edges.
+    // The ball will always bounce off vertical walls.
     if (ball->y < 0 || ball->y + BALL_SIZE > WINDOW_HEIGHT) {
         ball->velocity_y *= -1;
         if (game->round_over_timeout == 0) {
@@ -180,12 +180,16 @@ void update_ball(struct game *game, struct audio *audio, struct ball *ball,
         }
     }
 
-    // The ball will only bounce off horizontal edges when the game is over.
+    // The ball will only bounce off horizontal walls when the game is over.
     if (game->round_over_timeout != 0) {
         if (ball->x < 0 || ball->x + BALL_SIZE > WINDOW_WIDTH) {
             ball->velocity_x *= -1;
         }
+
+        ball->x = clamp(ball->x, 0, WINDOW_WIDTH - BALL_SIZE);
     }
+
+    ball->y = clamp(ball->y, 0, WINDOW_HEIGHT - BALL_SIZE);
 
     ball->rect.x = roundf(ball->x);
     ball->rect.y = roundf(ball->y);
@@ -213,7 +217,7 @@ void check_input(struct paddle *paddle_1, struct paddle *paddle_2) {
 
 void paddle_return_ball(struct ball *ball, struct paddle *peddle) {
 
-    ball->last_paddle_no_hit = peddle->no;
+    ball->last_paddle_hit = peddle->no;
 
     float collision_y = ((ball->y + ball->rect.h - peddle->y) /
                          (peddle->rect.h + ball->rect.h));
@@ -237,12 +241,12 @@ void paddle_return_ball(struct ball *ball, struct paddle *peddle) {
 void check_ball_paddle_hit(struct game *game, struct audio *audio) {
     if (game->round_over_timeout == 0) {
         if (SDL_HasIntersection(&game->paddle_1.rect, &game->ball.rect) &&
-            game->ball.last_paddle_no_hit != 1) {
+            game->ball.last_paddle_hit != 1) {
             paddle_return_ball(&game->ball, &game->paddle_1);
             queue_audio_clip(audio, &audio->paddle_hit);
         } else if (SDL_HasIntersection(&game->paddle_2.rect,
                                        &game->ball.rect) &&
-                   game->ball.last_paddle_no_hit != 2) {
+                   game->ball.last_paddle_hit != 2) {
             paddle_return_ball(&game->ball, &game->paddle_2);
             queue_audio_clip(audio, &audio->paddle_hit);
         }
@@ -282,8 +286,9 @@ void update_game_timeout(struct game *game, double elapsed_time) {
 }
 
 void check_round_over(struct game *game) {
-    if (game->round_over_timeout == 0 && (game->paddle_1.score == ROUND_MAX_SCORE ||
-                                          game->paddle_2.score == ROUND_MAX_SCORE)) {
+    if (game->round_over_timeout == 0 &&
+        (game->paddle_1.score == ROUND_MAX_SCORE ||
+         game->paddle_2.score == ROUND_MAX_SCORE)) {
         game->round_over_timeout = ROUND_OVER_TIMEOUT;
     }
 }
