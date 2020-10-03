@@ -46,8 +46,8 @@ struct audio {
 };
 
 struct digits {
-    int digit_width, digit_height;
     SDL_Texture *texture;
+    int digit_width, digit_height;
 };
 
 struct paddle {
@@ -118,12 +118,6 @@ struct paddle make_paddle(int no) {
     return paddle;
 }
 
-void update_paddle(struct paddle *paddle, double elapsed_time) {
-    paddle->y += paddle->velocity * elapsed_time;
-    paddle->y = clamp(paddle->y, 0, WINDOW_HEIGHT - PADDLE_HEIGHT);
-    paddle->rect.y = roundf(paddle->y);
-}
-
 struct ball make_ball() {
     return (struct ball){
         .rect =
@@ -134,25 +128,55 @@ struct ball make_ball() {
     };
 }
 
+// Position the ball on one of the sides of the net and change its velocity
+// based on which paddle it is being served to.
 void serve_ball(struct ball *ball, int paddle_no, bool round_over) {
     if (paddle_no == 1) {
-        ball->x = (WINDOW_WIDTH - BALL_SIZE) / 2 - NET_WIDTH * 2;
+        ball->x = ((WINDOW_WIDTH - BALL_SIZE) / 2) - NET_WIDTH * 2;
         ball->velocity_x = -BALL_SPEED_INITIAL_X;
     } else {
-        ball->x = (WINDOW_WIDTH - BALL_SIZE) / 2 + NET_WIDTH * 2;
+        ball->x = ((WINDOW_WIDTH - BALL_SIZE) / 2) + NET_WIDTH * 2;
         ball->velocity_x = BALL_SPEED_INITIAL_X;
     }
 
     ball->y = randrange(0, WINDOW_HEIGHT - BALL_SIZE);
 
-    if (!round_over) {
-        ball->serve_delay = BALL_SERVE_DELAY;
-    }
+    ball->rect.x = roundf(ball->x);
+    ball->rect.y = roundf(ball->y);
 
     ball->velocity_y = randrange(-BALL_SPEED_Y, BALL_SPEED_Y);
 
-    ball->rect.x = roundf(ball->x);
-    ball->rect.y = roundf(ball->y);
+    if (!round_over) {
+        ball->serve_delay = BALL_SERVE_DELAY;
+    }
+}
+
+// Set the vertical velocity of the paddles based on the state of the paddle
+// controls.
+void check_paddle_controls(struct paddle *paddle_1, struct paddle *paddle_2) {
+    const uint8_t *state = SDL_GetKeyboardState(NULL);
+
+    if (state[SDL_SCANCODE_W]) {
+        paddle_1->velocity = -PADDLE_SPEED;
+    } else if (state[SDL_SCANCODE_S]) {
+        paddle_1->velocity = PADDLE_SPEED;
+    } else {
+        paddle_1->velocity = 0;
+    }
+
+    if (state[SDL_SCANCODE_UP]) {
+        paddle_2->velocity = -PADDLE_SPEED;
+    } else if (state[SDL_SCANCODE_DOWN]) {
+        paddle_2->velocity = PADDLE_SPEED;
+    } else {
+        paddle_2->velocity = 0;
+    }
+}
+
+void update_paddle(struct paddle *paddle, double elapsed_time) {
+    paddle->y += paddle->velocity * elapsed_time;
+    paddle->y = clamp(paddle->y, 0, WINDOW_HEIGHT - PADDLE_HEIGHT);
+    paddle->rect.y = roundf(paddle->y);
 }
 
 void update_ball(struct game *game, struct audio *audio, struct ball *ball,
@@ -191,28 +215,9 @@ void update_ball(struct game *game, struct audio *audio, struct ball *ball,
     ball->rect.y = roundf(ball->y);
 }
 
-void check_paddle_controls(struct paddle *paddle_1, struct paddle *paddle_2) {
-    const uint8_t *state = SDL_GetKeyboardState(NULL);
-
-    if (state[SDL_SCANCODE_W]) {
-        paddle_1->velocity = -PADDLE_SPEED;
-    } else if (state[SDL_SCANCODE_S]) {
-        paddle_1->velocity = PADDLE_SPEED;
-    } else {
-        paddle_1->velocity = 0;
-    }
-
-    if (state[SDL_SCANCODE_UP]) {
-        paddle_2->velocity = -PADDLE_SPEED;
-    } else if (state[SDL_SCANCODE_DOWN]) {
-        paddle_2->velocity = PADDLE_SPEED;
-    } else {
-        paddle_2->velocity = 0;
-    }
-}
-
-// Return the ball in the other paddle's direction when it hits a paddle.
-void paddle_return_ball(struct ball *ball, struct paddle *paddle) {
+// Set the velocity of the ball based on which paddle it is being returned to
+// and where it hit the given paddle.
+void return_ball(struct ball *ball, struct paddle *paddle) {
     if (paddle->no == 1) {
         ball->x = paddle->rect.x + paddle->rect.w;
     } else {
@@ -241,22 +246,22 @@ void paddle_return_ball(struct ball *ball, struct paddle *paddle) {
     }
 }
 
-// Checks if the paddle hit the ball.
+// Return the ball in the other paddle's direction if it hit a paddle.
 void check_paddle_hit_ball(struct game *game, struct audio *audio) {
     if (game->round_over_timeout > 0) {
         return;
     }
 
     if (SDL_HasIntersection(&game->paddle_1.rect, &game->ball.rect)) {
-        paddle_return_ball(&game->ball, &game->paddle_1);
+        return_ball(&game->ball, &game->paddle_1);
         queue_audio_clip(audio, &audio->paddle_hit);
     } else if (SDL_HasIntersection(&game->paddle_2.rect, &game->ball.rect)) {
-        paddle_return_ball(&game->ball, &game->paddle_2);
+        return_ball(&game->ball, &game->paddle_2);
         queue_audio_clip(audio, &audio->paddle_hit);
     }
 }
 
-// Checks if the paddle missed returning the ball.
+// Score a point for a paddle if the other paddle missed returning the ball.
 void check_paddle_miss_ball(struct game *game, struct audio *audio) {
     if (game->ball.rect.x + game->ball.rect.w < 0) {
         if (game->paddle_2.score == ROUND_MAX_SCORE - 1) {
@@ -277,7 +282,8 @@ void check_paddle_miss_ball(struct game *game, struct audio *audio) {
     }
 }
 
-// Checks if the round is over and updates the round over timeout.
+// Start the round over timeout when one of the paddles reaches the max score,
+// update the round over timeout and restart the round when the timeout is over.
 void check_round_over(struct game *game, double elapsed_time) {
     if (game->round_over_timeout == 0) {
         if (game->paddle_1.score == ROUND_MAX_SCORE ||
@@ -528,13 +534,13 @@ int main() {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
 
-    free(audio.score.samples);
-    free(audio.paddle_hit.samples);
-    free(audio.bounce.samples);
-
     SDL_CloseAudioDevice(audio.device_id);
 
     SDL_Quit();
+
+    free(audio.score.samples);
+    free(audio.paddle_hit.samples);
+    free(audio.bounce.samples);
 
     return EXIT_SUCCESS;
 }
