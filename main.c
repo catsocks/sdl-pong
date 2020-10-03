@@ -39,7 +39,7 @@ struct audio_clip {
 };
 
 struct audio {
-    int device_id;
+    SDL_AudioDeviceID device_id;
     struct audio_clip score;
     struct audio_clip paddle_hit;
     struct audio_clip bounce;
@@ -105,23 +105,22 @@ void queue_audio_clip(struct audio *audio, struct audio_clip *clip) {
 }
 
 struct paddle make_paddle(int no) {
-    struct paddle paddle = {.no = no,
-                            .y = (WINDOW_HEIGHT - PADDLE_HEIGHT) / 2,
-                            .rect = {
-                                .w = PADDLE_WIDTH,
-                                .h = PADDLE_HEIGHT,
-                            }};
-    paddle.rect.x = no == 1 ? PADDLE_SCREEN_MARGIN_X
-                            : WINDOW_WIDTH - PADDLE_SCREEN_MARGIN_X;
+    struct paddle paddle = {
+        .no = no,
+        .y = (WINDOW_HEIGHT - PADDLE_HEIGHT) / 2,
+        .rect = {
+            .x = no == 1 ? PADDLE_SCREEN_MARGIN_X
+                         : WINDOW_WIDTH - PADDLE_SCREEN_MARGIN_X,
+            .w = PADDLE_WIDTH,
+            .h = PADDLE_HEIGHT,
+        }};
     paddle.rect.y = roundf(paddle.y);
     return paddle;
 }
 
 void update_paddle(struct paddle *paddle, double elapsed_time) {
     paddle->y += paddle->velocity * elapsed_time;
-
     paddle->y = clamp(paddle->y, 0, WINDOW_HEIGHT - PADDLE_HEIGHT);
-
     paddle->rect.y = roundf(paddle->y);
 }
 
@@ -302,7 +301,7 @@ void render_paddle_score(SDL_Renderer *renderer, struct digits digits,
     SDL_Rect src = {.w = digits.digit_width, .h = digits.digit_height};
 
     SDL_Rect dest = {.x = paddle.no == 1
-                              ? WINDOW_WIDTH / 2 - SCORE_SCREEN_MARGIN_X
+                              ? (WINDOW_WIDTH / 2) - SCORE_SCREEN_MARGIN_X
                               : WINDOW_WIDTH - SCORE_SCREEN_MARGIN_X,
                      .y = SCORE_Y,
                      .w = src.w * SCORE_DIGIT_SCALE_FACTOR,
@@ -338,51 +337,56 @@ void render_net(SDL_Renderer *renderer) {
 void render_paddle(SDL_Renderer *renderer, struct game *game,
                    struct paddle paddle) {
     if (game->round_over_timeout == 0) {
-        SDL_RenderFillRect(renderer, &(SDL_Rect){.x = paddle.rect.x,
-                                                 .y = paddle.rect.y,
-                                                 .w = paddle.rect.w,
-                                                 .h = paddle.rect.h});
+        SDL_RenderFillRect(renderer, &paddle.rect);
     }
 }
 
 // Render ball as a filled rectangle.
 void render_ball(SDL_Renderer *renderer, struct ball ball) {
     if (ball.serve_delay == 0) {
-        SDL_RenderFillRect(renderer, &(SDL_Rect){.x = ball.rect.x,
-                                                 .y = ball.rect.y,
-                                                 .w = ball.rect.w,
-                                                 .h = ball.rect.h});
+        SDL_RenderFillRect(renderer, &ball.rect);
     }
 }
 
 int main() {
-    // For choosing which paddle gets served the ball first and the vertical
-    // position of the ball every time it appears.
-    srand(time(NULL));
-
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Initialize SDL: %s",
-                     SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
-    SDL_AudioDeviceID audio_device_id =
-        SDL_OpenAudioDevice(NULL, 0,
-                            &(SDL_AudioSpec){.freq = AUDIO_SAMPLING_RATE,
-                                             .format = AUDIO_S16,
-                                             .channels = AUDIO_CHANNELS,
-                                             .samples = 2048},
-                            NULL, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
-
     struct audio audio = {
-        .device_id = audio_device_id,
         .score = make_tone(240, 0.510, 0.025),
         .paddle_hit = make_tone(480, 0.035, 0.025),
         .bounce = make_tone(240, 0.020, 0.025),
     };
 
-    // Unpause the audio device.
-    SDL_PauseAudioDevice(audio_device_id, 0);
+    // For choosing which paddle gets served the ball first and the vertical
+    // position of the ball every time it appears.
+    srand(time(NULL));
+
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Initialize SDL: %s",
+                     SDL_GetError());
+        return EXIT_FAILURE;
+    }
+
+    // The audio subsystem is not required.
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "Initialize SDL audio subsystem: %s", SDL_GetError());
+    }
+
+    // Open an audio device for playing signed 16-bit mono samples and ignore if
+    // no device can be opened.
+    audio.device_id =
+        SDL_OpenAudioDevice(NULL, 0,
+                            &(SDL_AudioSpec){.freq = AUDIO_SAMPLING_RATE,
+                                             .format = AUDIO_S16SYS,
+                                             .channels = AUDIO_CHANNELS,
+                                             .samples = 2048},
+                            NULL, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+    if (audio.device_id == 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Open audio device: %s",
+                     SDL_GetError());
+    }
+
+    // Unpause the audio device which is paused by default.
+    SDL_PauseAudioDevice(audio.device_id, 0);
 
     // Create a hidden window so it may only be shown after the game is
     // initialized.
@@ -528,7 +532,7 @@ int main() {
     free(audio.paddle_hit.samples);
     free(audio.bounce.samples);
 
-    SDL_CloseAudioDevice(audio_device_id);
+    SDL_CloseAudioDevice(audio.device_id);
 
     SDL_Quit();
 
