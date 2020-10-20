@@ -58,7 +58,7 @@ struct paddle {
 
 struct ball {
     float x, y;
-    float velocity_x, velocity_y;
+    SDL_FPoint velocity;
     SDL_Rect rect;
     float serve_delay;
 };
@@ -121,10 +121,10 @@ struct ball make_ball() {
 void serve_ball(struct ball *ball, int paddle_no, bool round_over) {
     if (paddle_no == 1) {
         ball->x = ((WINDOW_WIDTH - BALL_SIZE) / 2) - NET_WIDTH * 2;
-        ball->velocity_x = -BALL_SPEED_INITIAL_X;
+        ball->velocity.x = -BALL_SPEED_INITIAL_X;
     } else {
         ball->x = ((WINDOW_WIDTH - BALL_SIZE) / 2) + NET_WIDTH * 2;
-        ball->velocity_x = BALL_SPEED_INITIAL_X;
+        ball->velocity.x = BALL_SPEED_INITIAL_X;
     }
 
     ball->y = randrange(0, WINDOW_HEIGHT - BALL_SIZE);
@@ -132,7 +132,7 @@ void serve_ball(struct ball *ball, int paddle_no, bool round_over) {
     ball->rect.x = roundf(ball->x);
     ball->rect.y = roundf(ball->y);
 
-    ball->velocity_y = randrange(-BALL_SPEED_Y, BALL_SPEED_Y);
+    ball->velocity.y = randrange(-BALL_SPEED_Y, BALL_SPEED_Y);
 
     if (!round_over) {
         ball->serve_delay = BALL_SERVE_DELAY;
@@ -177,12 +177,12 @@ void update_ball(struct game *game, struct audio *audio, struct ball *ball,
         return;
     }
 
-    ball->x += ball->velocity_x * elapsed_time;
-    ball->y += ball->velocity_y * elapsed_time;
+    ball->x += ball->velocity.x * elapsed_time;
+    ball->y += ball->velocity.y * elapsed_time;
 
     // The ball will always bounce off vertical walls.
     if (ball->y < 0 || ball->y + BALL_SIZE > WINDOW_HEIGHT) {
-        ball->velocity_y *= -1;
+        ball->velocity.y *= -1;
         if (game->round_over_timeout == 0) {
             queue_audio_clip(audio, &audio->bounce);
         }
@@ -191,7 +191,7 @@ void update_ball(struct game *game, struct audio *audio, struct ball *ball,
     // The ball will only bounce off horizontal walls when the game is over.
     if (game->round_over_timeout != 0) {
         if (ball->x < 0 || ball->x + BALL_SIZE > WINDOW_WIDTH) {
-            ball->velocity_x *= -1;
+            ball->velocity.x *= -1;
         }
 
         ball->x = clamp(ball->x, 0, WINDOW_WIDTH - BALL_SIZE);
@@ -212,25 +212,25 @@ void return_ball(struct ball *ball, struct paddle *paddle) {
         ball->x = paddle->rect.x - ball->rect.w;
     }
 
-    ball->velocity_x *= -1;
+    ball->velocity.x *= -1;
 
-    if (fabs(ball->velocity_x) < BALL_SPEED_MAX_X) {
-        if (ball->velocity_x > 0) {
-            ball->velocity_x += BALL_SPEED_INCREMENT_X;
+    if (fabs(ball->velocity.x) < BALL_SPEED_MAX_X) {
+        if (ball->velocity.x > 0) {
+            ball->velocity.x += BALL_SPEED_INCREMENT_X;
         } else {
-            ball->velocity_x += -BALL_SPEED_INCREMENT_X;
+            ball->velocity.x += -BALL_SPEED_INCREMENT_X;
         }
     }
 
     float intersect_y =
         (ball->y + ball->rect.h - paddle->y) / (paddle->rect.h + ball->rect.h);
 
-    ball->velocity_y += (0.5 - intersect_y) * BALL_SPEED_Y * 2;
+    ball->velocity.y += (0.5 - intersect_y) * BALL_SPEED_Y * 2;
 
-    if (ball->velocity_y > BALL_SPEED_Y) {
-        ball->velocity_y = BALL_SPEED_Y;
-    } else if (ball->velocity_y < -BALL_SPEED_Y) {
-        ball->velocity_y = -BALL_SPEED_Y;
+    if (ball->velocity.y > BALL_SPEED_Y) {
+        ball->velocity.y = BALL_SPEED_Y;
+    } else if (ball->velocity.y < -BALL_SPEED_Y) {
+        ball->velocity.y = -BALL_SPEED_Y;
     }
 }
 
