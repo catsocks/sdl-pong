@@ -1,7 +1,7 @@
 # SDL Pong
 
 An attempt at recreating the [Pong](https://en.wikipedia.org/wiki/Pong) game
-from 1972 (with sound) in C using only the [SDL](https://www.libsdl.org/)
+from 1972 with sound in C using only the [SDL](https://www.libsdl.org/)
 library.
 
 You can watch a recording of 1972 Pong here:
@@ -20,8 +20,8 @@ You can watch a recording of 1972 Pong here:
 ## Build
 
 The only build requirements are a C compiler that supports C99 and the SDL
-library (version 2 or higher). You can use CMake to generate build files or you
-can simply run the build.sh script on a Unix-like system.
+(version 2) library. You can use CMake to generate build files or you can simply
+run the build.sh script on a Unix-like system.
 
 ## License
 

@@ -3,10 +3,8 @@
 #include <stdbool.h>
 #include <time.h>
 
-#define PI 3.14159265358979323846
-
 #define AUDIO_SAMPLING_RATE 44100
-#define AUDIO_CHANNELS 1
+#define AUDIO_AMPLITUDE (0.025 * SHRT_MAX) // volume
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -35,7 +33,7 @@
 
 struct audio_clip {
     short *samples;
-    size_t size;
+    size_t samples_size;
 };
 
 struct audio {
@@ -45,9 +43,9 @@ struct audio {
     struct audio_clip bounce;
 };
 
-struct digits {
+struct digits_image {
     SDL_Texture *texture;
-    int digit_width, digit_height;
+    SDL_Rect digit_size;
 };
 
 struct paddle {
@@ -80,28 +78,24 @@ int randrange(int min, int max) {
     return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
 
-short sample_square_wave(int i, int freq, float amplitude) {
-    if (sin(2 * PI * freq * i / (double)AUDIO_SAMPLING_RATE) >= 0) {
-        return amplitude;
-    }
-    return -amplitude;
-}
-
-struct audio_clip make_tone(int freq, float duration, float amplitude) {
+struct audio_clip make_square_wave(int freq, float duration) {
     int num_samples = duration * AUDIO_SAMPLING_RATE;
     size_t size = num_samples * sizeof(short);
     short *samples = malloc(size);
 
-    amplitude *= SHRT_MAX;
     for (int i = 0; i < num_samples; i++) {
-        samples[i] = sample_square_wave(i, freq, amplitude);
+        if (sin(2 * M_PI * freq * (i / (double)AUDIO_SAMPLING_RATE)) >= 0) {
+            samples[i] = AUDIO_AMPLITUDE;
+        } else {
+            samples[i] = -AUDIO_AMPLITUDE;
+        }
     }
 
     return (struct audio_clip){samples, size};
 }
 
 void queue_audio_clip(struct audio *audio, struct audio_clip *clip) {
-    SDL_QueueAudio(audio->device_id, clip->samples, clip->size);
+    SDL_QueueAudio(audio->device_id, clip->samples, clip->samples_size);
 }
 
 struct paddle make_paddle(int no) {
@@ -119,13 +113,7 @@ struct paddle make_paddle(int no) {
 }
 
 struct ball make_ball() {
-    return (struct ball){
-        .rect =
-            {
-                .w = BALL_SIZE,
-                .h = BALL_SIZE,
-            },
-    };
+    return (struct ball){.rect = {.w = BALL_SIZE, .h = BALL_SIZE}};
 }
 
 // Position the ball on one of the sides of the net and change its velocity
@@ -302,9 +290,9 @@ void check_round_over(struct game *game, double elapsed_time) {
 }
 
 // Render the score of a paddle using the digits in the digits image.
-void render_paddle_score(SDL_Renderer *renderer, struct digits digits,
+void render_paddle_score(SDL_Renderer *renderer, struct digits_image digits,
                          struct paddle paddle) {
-    SDL_Rect src = {.w = digits.digit_width, .h = digits.digit_height};
+    SDL_Rect src = digits.digit_size;
 
     SDL_Rect dest = {.x = paddle.no == 1
                               ? (WINDOW_WIDTH / 2) - SCORE_SCREEN_MARGIN_X
@@ -356,9 +344,9 @@ void render_ball(SDL_Renderer *renderer, struct ball ball) {
 
 int main() {
     struct audio audio = {
-        .score = make_tone(240, 0.510, 0.025),
-        .paddle_hit = make_tone(480, 0.035, 0.025),
-        .bounce = make_tone(240, 0.020, 0.025),
+        .score = make_square_wave(240, 0.510),
+        .paddle_hit = make_square_wave(480, 0.035),
+        .bounce = make_square_wave(240, 0.020),
     };
 
     // For choosing which paddle gets served the ball first and the vertical
@@ -383,7 +371,7 @@ int main() {
         SDL_OpenAudioDevice(NULL, 0,
                             &(SDL_AudioSpec){.freq = AUDIO_SAMPLING_RATE,
                                              .format = AUDIO_S16SYS,
-                                             .channels = AUDIO_CHANNELS,
+                                             .channels = 1,
                                              .samples = 2048},
                             NULL, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
     if (audio.device_id == 0) {
@@ -440,9 +428,10 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    struct digits digits = {.digit_width = digits_surf->w / 10,
-                            .digit_height = digits_surf->h,
-                            .texture = digits_tex};
+    struct digits_image digits = {
+        .digit_size = {.w = digits_surf->w / 10, .h = digits_surf->h},
+        .texture = digits_tex,
+    };
 
     // Show the window after the game is done initializing.
     SDL_ShowWindow(window);
