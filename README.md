@@ -32,9 +32,6 @@ buildable on Windows and macOS as it is or with very minor changes.
 You can build the project using either CMake or by simply running build.sh on a
 Unix-like system.
 
-I have only built this project on Linux but it should be buildable on Windows
-and macOS as it is or with very minor changes.
-
 ## License
 
 Everything with the exception of the contents of the cmake folder is dedicated
