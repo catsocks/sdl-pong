@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.9)
-project(pong C)
+project(tennis C)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIR})
-
-# add_compile_definitions(CHEATS)
 
 add_executable(${PROJECT_NAME} main.c)
 

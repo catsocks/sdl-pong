@@ -1,6 +1,7 @@
-cc -Wall -Wextra -pedantic \
-   -o pong \
-   main.c \
-   $(sdl2-config --cflags --libs) \
-   -lm \
-   "$@" # -DCHEATS
+mkdir -p build
+cc -o build/tennis \
+	main.c \
+	$(sdl2-config --cflags --libs) \
+	-lm \
+	-Wall -Wextra -pedantic \
+	"$@"

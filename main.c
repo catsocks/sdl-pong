@@ -1,38 +1,57 @@
 #include <SDL.h>
-#include <limits.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <time.h>
 
-#define AUDIO_SAMPLING_RATE 44100
-#define AUDIO_AMPLITUDE (0.025 * SHRT_MAX) // volume
+const int AUDIO_SAMPLING_RATE = 44100;
+const float AUDIO_AMPLITUDE = 0.025 * INT16_MAX; // volume
 
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+const bool AUDIO_ENABLED = true;
+const bool JOYSTICKS_ENABLED = true;
 
-#define ROUND_MAX_SCORE 11
-#define ROUND_OVER_TIMEOUT 6 // seconds
+const int WINDOW_WIDTH = 800;
+const int WINDOW_HEIGHT = 600;
 
-#define PADDLE_WIDTH 10
-#define PADDLE_HEIGHT 50
-#define PADDLE_SCREEN_MARGIN_X 50
-#define PADDLE_SPEED 500 // px per second
+// Assumes that at most 2 joysticks are detected.
+const int JOYSTICK_1_IDX = 0;
+const int JOYSTICK_2_IDX = 1;
 
-#define BALL_SIZE 14
-#define BALL_SPEED_Y 300          // px per second
-#define BALL_SPEED_INITIAL_X 300  // px per second
-#define BALL_SPEED_MAX_X 500      // px per second
-#define BALL_SPEED_INCREMENT_X 20 // px per second
-#define BALL_SERVE_DELAY 2        // seconds
+const int JOYSTICK_1_AXIS_IDX = 1; // 1 is commonly the y-axis
+const int JOYSTICK_2_AXIS_IDX = 1;
 
-#define SCORE_Y 50
-#define SCORE_SCREEN_MARGIN_X 150
-#define SCORE_DIGIT_SCALE_FACTOR 10
+const int PADDLE_1_UP_KEY = SDL_SCANCODE_W;
+const int PADDLE_1_DOWN_KEY = SDL_SCANCODE_S;
+const int PADDLE_2_UP_KEY = SDL_SCANCODE_UP;
+const int PADDLE_2_DOWN_KEY = SDL_SCANCODE_DOWN;
 
-#define NET_WIDTH 5
-#define NET_HEIGHT 15
+const int ROUND_MAX_SCORE = 11;
+const int ROUND_OVER_TIMEOUT = 6; // seconds
+
+const bool CHEATS_ENABLED = false;
+
+const int PADDLE_WIDTH = 10;
+const int PADDLE_HEIGHT = 50;
+const int PADDLE_X_MARGIN = 50;
+const int PADDLE_SPEED = 500;     // px per second
+const int PADDLE_MAX_SPEED = 700; // px per second, for joysticks
+
+const int BALL_SIZE = 14;
+const int BALL_INITIAL_SPEED = 360;  // px per second
+const int BALL_MAX_SPEED = 500;      // px per second
+const int BALL_SPEED_INCREMENT = 20; // px per second
+const float BALL_MAX_SERVE_ANGLE = M_PI / 6;
+const float BALL_MAX_BOUNCE_ANGLE = M_PI / 4;
+const float BALL_SERVE_DELAY = 2; // seconds
+
+const int SCORE_Y = 50;
+const int SCORE_X_MARGIN = 150;
+const int SCORE_DIGIT_SCALE = 10;
+
+const int NET_WIDTH = 5;
+const int NET_HEIGHT = 15;
 
 struct audio_clip {
-    short *samples;
+    int16_t *samples;
     size_t samples_size;
 };
 
@@ -50,16 +69,15 @@ struct digits_image {
 
 struct paddle {
     int no;
-    float y;
+    float x, y;
     float velocity;
-    SDL_Rect rect;
     int score;
 };
 
 struct ball {
     float x, y;
+    float speed;
     SDL_FPoint velocity;
-    SDL_Rect rect;
     float serve_delay;
 };
 
@@ -74,16 +92,20 @@ int clamp(int x, int min, int max) {
     return x < min ? min : x > max ? max : x;
 }
 
-int randrange(int min, int max) {
-    return min + rand() / (RAND_MAX / (max - min + 1) + 1);
+int rand_range(int min, int max) {
+    return min + (rand() / ((RAND_MAX / (max - min + 1)) + 1));
+}
+
+double rand_double() {
+    return rand() / (double)RAND_MAX;
 }
 
 struct audio_clip make_square_wave(int freq, float duration) {
-    int num_samples = duration * AUDIO_SAMPLING_RATE;
-    size_t size = num_samples * sizeof(short);
-    short *samples = malloc(size);
+    int length = duration * AUDIO_SAMPLING_RATE;
+    size_t size = length * sizeof(int16_t);
+    int16_t *samples = malloc(size);
 
-    for (int i = 0; i < num_samples; i++) {
+    for (int i = 0; i < length; i++) {
         if (sin(2 * M_PI * freq * (i / (double)AUDIO_SAMPLING_RATE)) >= 0) {
             samples[i] = AUDIO_AMPLITUDE;
         } else {
@@ -99,40 +121,31 @@ void queue_audio_clip(struct audio *audio, struct audio_clip *clip) {
 }
 
 struct paddle make_paddle(int no) {
-    struct paddle paddle = {
+    return (struct paddle){
         .no = no,
+        .x = no == 1 ? PADDLE_X_MARGIN : WINDOW_WIDTH - PADDLE_X_MARGIN,
         .y = (WINDOW_HEIGHT - PADDLE_HEIGHT) / 2,
-        .rect = {
-            .x = no == 1 ? PADDLE_SCREEN_MARGIN_X
-                         : WINDOW_WIDTH - PADDLE_SCREEN_MARGIN_X,
-            .w = PADDLE_WIDTH,
-            .h = PADDLE_HEIGHT,
-        }};
-    paddle.rect.y = roundf(paddle.y);
-    return paddle;
-}
-
-struct ball make_ball() {
-    return (struct ball){.rect = {.w = BALL_SIZE, .h = BALL_SIZE}};
+    };
 }
 
 // Position the ball on one of the sides of the net and change its velocity
 // based on which paddle it is being served to.
 void serve_ball(struct ball *ball, int paddle_no, bool round_over) {
+    ball->y = rand_range(0, WINDOW_HEIGHT - BALL_SIZE);
+
+    ball->speed = BALL_INITIAL_SPEED;
+
+    float angle = (-1 + (rand_double() * 2)) * BALL_MAX_SERVE_ANGLE;
+
     if (paddle_no == 1) {
+        angle += M_PI;
         ball->x = ((WINDOW_WIDTH - BALL_SIZE) / 2) - NET_WIDTH * 2;
-        ball->velocity.x = -BALL_SPEED_INITIAL_X;
     } else {
         ball->x = ((WINDOW_WIDTH - BALL_SIZE) / 2) + NET_WIDTH * 2;
-        ball->velocity.x = BALL_SPEED_INITIAL_X;
     }
 
-    ball->y = randrange(0, WINDOW_HEIGHT - BALL_SIZE);
-
-    ball->rect.x = roundf(ball->x);
-    ball->rect.y = roundf(ball->y);
-
-    ball->velocity.y = randrange(-BALL_SPEED_Y, BALL_SPEED_Y);
+    ball->velocity.x = cos(angle) * ball->speed;
+    ball->velocity.y = -sin(angle) * ball->speed;
 
     if (!round_over) {
         ball->serve_delay = BALL_SERVE_DELAY;
@@ -141,30 +154,32 @@ void serve_ball(struct ball *ball, int paddle_no, bool round_over) {
 
 // Set the vertical velocity of the paddles based on the state of the paddle
 // controls.
-void check_paddle_controls(struct paddle *paddle_1, struct paddle *paddle_2) {
+// The keyboard and joystick controls can be used simultaneously.
+void check_paddle_controls(struct paddle *paddle_1, struct paddle *paddle_2,
+                           SDL_Joystick *joystick_1, SDL_Joystick *joystick_2) {
     const uint8_t *state = SDL_GetKeyboardState(NULL);
 
-    if (state[SDL_SCANCODE_W]) {
+    int16_t axis = SDL_JoystickGetAxis(joystick_1, JOYSTICK_1_AXIS_IDX);
+    paddle_1->velocity = PADDLE_MAX_SPEED * (axis / (float)INT16_MAX);
+    axis = SDL_JoystickGetAxis(joystick_2, JOYSTICK_2_AXIS_IDX);
+    paddle_2->velocity = PADDLE_MAX_SPEED * (axis / (float)INT16_MAX);
+
+    if (state[PADDLE_1_UP_KEY]) {
         paddle_1->velocity = -PADDLE_SPEED;
-    } else if (state[SDL_SCANCODE_S]) {
+    } else if (state[PADDLE_1_DOWN_KEY]) {
         paddle_1->velocity = PADDLE_SPEED;
-    } else {
-        paddle_1->velocity = 0;
     }
 
-    if (state[SDL_SCANCODE_UP]) {
+    if (state[PADDLE_2_UP_KEY]) {
         paddle_2->velocity = -PADDLE_SPEED;
-    } else if (state[SDL_SCANCODE_DOWN]) {
+    } else if (state[PADDLE_2_DOWN_KEY]) {
         paddle_2->velocity = PADDLE_SPEED;
-    } else {
-        paddle_2->velocity = 0;
     }
 }
 
 void update_paddle(struct paddle *paddle, double elapsed_time) {
     paddle->y += paddle->velocity * elapsed_time;
     paddle->y = clamp(paddle->y, 0, WINDOW_HEIGHT - PADDLE_HEIGHT);
-    paddle->rect.y = roundf(paddle->y);
 }
 
 void update_ball(struct game *game, struct audio *audio, struct ball *ball,
@@ -186,6 +201,8 @@ void update_ball(struct game *game, struct audio *audio, struct ball *ball,
         if (game->round_over_timeout == 0) {
             queue_audio_clip(audio, &audio->bounce);
         }
+
+        ball->y = clamp(ball->y, 0, WINDOW_HEIGHT - BALL_SIZE);
     }
 
     // The ball will only bounce off horizontal walls when the game is over.
@@ -196,54 +213,52 @@ void update_ball(struct game *game, struct audio *audio, struct ball *ball,
 
         ball->x = clamp(ball->x, 0, WINDOW_WIDTH - BALL_SIZE);
     }
-
-    ball->y = clamp(ball->y, 0, WINDOW_HEIGHT - BALL_SIZE);
-
-    ball->rect.x = roundf(ball->x);
-    ball->rect.y = roundf(ball->y);
 }
 
 // Set the velocity of the ball based on which paddle it is being returned to
 // and where it hit the given paddle.
 void return_ball(struct ball *ball, struct paddle *paddle) {
+    if (ball->speed < BALL_MAX_SPEED) {
+        ball->speed += BALL_SPEED_INCREMENT;
+    }
+
+    // The vertical intersection relative to the center of both the paddle and
+    // ball.
+    float intersect =
+        paddle->y + (PADDLE_HEIGHT / 2) - ball->y - (BALL_SIZE / 2);
+
+    float bounce_angle =
+        (intersect / (PADDLE_HEIGHT / 2)) * BALL_MAX_BOUNCE_ANGLE;
+
     if (paddle->no == 1) {
-        ball->x = paddle->rect.x + paddle->rect.w;
+        ball->x = paddle->x + PADDLE_WIDTH;
+
+        ball->velocity.x = cos(bounce_angle) * ball->speed;
+        ball->velocity.y = sin(bounce_angle) * ball->speed;
     } else {
-        ball->x = paddle->rect.x - ball->rect.w;
-    }
+        ball->x = paddle->x - BALL_SIZE;
 
-    ball->velocity.x *= -1;
-
-    if (fabs(ball->velocity.x) < BALL_SPEED_MAX_X) {
-        if (ball->velocity.x > 0) {
-            ball->velocity.x += BALL_SPEED_INCREMENT_X;
-        } else {
-            ball->velocity.x += -BALL_SPEED_INCREMENT_X;
-        }
-    }
-
-    float intersect_y =
-        (ball->y + ball->rect.h - paddle->y) / (paddle->rect.h + ball->rect.h);
-
-    ball->velocity.y += (0.5 - intersect_y) * BALL_SPEED_Y * 2;
-
-    if (ball->velocity.y > BALL_SPEED_Y) {
-        ball->velocity.y = BALL_SPEED_Y;
-    } else if (ball->velocity.y < -BALL_SPEED_Y) {
-        ball->velocity.y = -BALL_SPEED_Y;
+        ball->velocity.x = cos(bounce_angle + M_PI) * ball->speed;
+        ball->velocity.y = -sin(bounce_angle + M_PI) * ball->speed;
     }
 }
 
-// Return the ball in the other paddle's direction if it hit a paddle.
+// Return whether there is an intersection between a paddle and the ball.
+bool paddle_intersects_ball(struct paddle paddle, struct ball ball) {
+    return paddle.x < ball.x + BALL_SIZE && paddle.x + PADDLE_WIDTH > ball.x &&
+           paddle.y < ball.y + BALL_SIZE && paddle.y + PADDLE_HEIGHT > ball.y;
+}
+
+// Return the ball in the other paddle's angle if it hit a paddle.
 void check_paddle_hit_ball(struct game *game, struct audio *audio) {
     if (game->round_over_timeout > 0) {
         return;
     }
 
-    if (SDL_HasIntersection(&game->paddle_1.rect, &game->ball.rect)) {
+    if (paddle_intersects_ball(game->paddle_1, game->ball)) {
         return_ball(&game->ball, &game->paddle_1);
         queue_audio_clip(audio, &audio->paddle_hit);
-    } else if (SDL_HasIntersection(&game->paddle_2.rect, &game->ball.rect)) {
+    } else if (paddle_intersects_ball(game->paddle_2, game->ball)) {
         return_ball(&game->ball, &game->paddle_2);
         queue_audio_clip(audio, &audio->paddle_hit);
     }
@@ -251,7 +266,7 @@ void check_paddle_hit_ball(struct game *game, struct audio *audio) {
 
 // Score a point for a paddle if the other paddle missed returning the ball.
 void check_paddle_miss_ball(struct game *game, struct audio *audio) {
-    if (game->ball.rect.x + game->ball.rect.w < 0) {
+    if (game->ball.x + BALL_SIZE < 0) {
         if (game->paddle_2.score == ROUND_MAX_SCORE - 1) {
             serve_ball(&game->ball, 2, true);
         } else {
@@ -259,7 +274,7 @@ void check_paddle_miss_ball(struct game *game, struct audio *audio) {
             queue_audio_clip(audio, &audio->score);
         }
         game->paddle_2.score++;
-    } else if (game->ball.rect.x > WINDOW_WIDTH) {
+    } else if (game->ball.x > WINDOW_WIDTH) {
         if (game->paddle_1.score == ROUND_MAX_SCORE - 1) {
             serve_ball(&game->ball, 1, true);
         } else {
@@ -283,7 +298,7 @@ void check_round_over(struct game *game, double elapsed_time) {
         if (game->round_over_timeout <= 0) {
             game->paddle_1.score = 0;
             game->paddle_2.score = 0;
-            serve_ball(&game->ball, randrange(1, 2), false);
+            serve_ball(&game->ball, rand_range(1, 2), false);
             game->round_over_timeout = 0;
         }
     }
@@ -294,12 +309,13 @@ void render_paddle_score(SDL_Renderer *renderer, struct digits_image digits,
                          struct paddle paddle) {
     SDL_Rect src = digits.digit_size;
 
-    SDL_Rect dest = {.x = paddle.no == 1
-                              ? (WINDOW_WIDTH / 2) - SCORE_SCREEN_MARGIN_X
-                              : WINDOW_WIDTH - SCORE_SCREEN_MARGIN_X,
-                     .y = SCORE_Y,
-                     .w = src.w * SCORE_DIGIT_SCALE_FACTOR,
-                     .h = src.h * SCORE_DIGIT_SCALE_FACTOR};
+    SDL_Rect dest = {
+        .x = paddle.no == 1 ? (WINDOW_WIDTH / 2) - SCORE_X_MARGIN
+                            : WINDOW_WIDTH - SCORE_X_MARGIN,
+        .y = SCORE_Y,
+        .w = src.w * SCORE_DIGIT_SCALE,
+        .h = src.h * SCORE_DIGIT_SCALE,
+    };
 
     if (paddle.score == 0) {
         SDL_RenderCopy(renderer, digits.texture, &src, &dest);
@@ -310,7 +326,7 @@ void render_paddle_score(SDL_Renderer *renderer, struct digits_image digits,
     while (n != 0) {
         src.x = (n % 10) * src.w;
         SDL_RenderCopy(renderer, digits.texture, &src, &dest);
-        dest.x -= SCORE_DIGIT_SCALE_FACTOR * src.w * 2;
+        dest.x -= SCORE_DIGIT_SCALE * src.w * 2;
         n /= 10;
     }
 }
@@ -331,18 +347,24 @@ void render_net(SDL_Renderer *renderer) {
 void render_paddle(SDL_Renderer *renderer, struct game *game,
                    struct paddle paddle) {
     if (game->round_over_timeout == 0) {
-        SDL_RenderFillRect(renderer, &paddle.rect);
+        SDL_RenderFillRectF(
+            renderer,
+            &(SDL_FRect){paddle.x, paddle.y, PADDLE_WIDTH, PADDLE_HEIGHT});
     }
 }
 
 // Render ball as a filled rectangle.
 void render_ball(SDL_Renderer *renderer, struct ball ball) {
     if (ball.serve_delay == 0) {
-        SDL_RenderFillRect(renderer, &ball.rect);
+        SDL_RenderFillRectF(renderer,
+                            &(SDL_FRect){ball.x, ball.y, BALL_SIZE, BALL_SIZE});
     }
 }
 
 int main() {
+    // Generate square waves to be used as sound effects for when a paddles
+    // scores a point, a paddle hits the ball and when the ball bounces off the
+    // vertical screen edges.
     struct audio audio = {
         .score = make_square_wave(240, 0.510),
         .paddle_hit = make_square_wave(480, 0.035),
@@ -350,7 +372,7 @@ int main() {
     };
 
     // For choosing which paddle gets served the ball first and the vertical
-    // position of the ball every time it appears.
+    // position and angle of the ball every time it is served.
     srand(time(NULL));
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -360,9 +382,15 @@ int main() {
     }
 
     // The audio subsystem is not required.
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0 && AUDIO_ENABLED) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                      "Initialize SDL audio subsystem: %s", SDL_GetError());
+    }
+
+    // The joystick subsystem is not required.
+    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0 && JOYSTICKS_ENABLED) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "Initialize SDL joystick subsystem: %s", SDL_GetError());
     }
 
     // Open an audio device for playing signed 16-bit mono samples and ignore if
@@ -374,7 +402,7 @@ int main() {
                                              .channels = 1,
                                              .samples = 2048},
                             NULL, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
-    if (audio.device_id == 0) {
+    if (audio.device_id == 0 && AUDIO_ENABLED) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Open audio device: %s",
                      SDL_GetError());
     }
@@ -385,8 +413,8 @@ int main() {
     // Create a hidden window so it may only be shown after the game is
     // initialized.
     SDL_Window *window = SDL_CreateWindow(
-        "Pong", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_WIDTH,
-        WINDOW_HEIGHT, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
+        "Tennis", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
     if (window == NULL) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Create window: %s",
                      SDL_GetError());
@@ -407,6 +435,11 @@ int main() {
     // ratio in the given resolution isn't necessary.
     SDL_RenderSetLogicalSize(renderer, WINDOW_WIDTH, WINDOW_HEIGHT);
 
+    // Try to open and get the identifier for two joysticks, ignoring if any
+    // error occurs.
+    SDL_Joystick *joystick_1 = SDL_JoystickOpen(JOYSTICK_1_IDX);
+    SDL_Joystick *joystick_2 = SDL_JoystickOpen(JOYSTICK_2_IDX);
+
     // Load the digits for rendering the paddles score.
     SDL_Surface *digits_surf = SDL_LoadBMP("digits.bmp");
     if (digits_surf == NULL) {
@@ -416,7 +449,7 @@ int main() {
     }
 
     // Uncomment to make the black pixels transparent in case the game's
-    // background is made to be a color other than black.
+    // background is set to a color other than black.
     // SDL_SetColorKey(digits_surf, SDL_TRUE,
     //                 SDL_MapRGB(digits_surf->format, 0, 0, 0));
 
@@ -440,11 +473,12 @@ int main() {
 
     uint64_t counter_time = SDL_GetPerformanceCounter();
 
-    struct game game = {.paddle_1 = make_paddle(1),
-                        .paddle_2 = make_paddle(2),
-                        .ball = make_ball()};
+    struct game game = {
+        .paddle_1 = make_paddle(1),
+        .paddle_2 = make_paddle(2),
+    };
 
-    serve_ball(&game.ball, randrange(1, 2), false);
+    serve_ball(&game.ball, rand_range(1, 2), false);
 
     while (running) {
         // Calculate the difference of time between the last frame and the
@@ -474,21 +508,24 @@ int main() {
                                                 SDL_WINDOW_FULLSCREEN_DESKTOP);
                     }
                     break;
-#ifdef CHEATS
                 case SDLK_1:
-                    game.paddle_1.score += 1;
+                    if (CHEATS_ENABLED) {
+                        game.paddle_1.score += 1;
+                    }
                     break;
                 case SDLK_2:
-                    game.paddle_2.score += 1;
+                    if (CHEATS_ENABLED) {
+                        game.paddle_2.score += 1;
+                    }
                     break;
-#endif
                 }
                 break;
             }
         }
 
         // Begin to update the game state.
-        check_paddle_controls(&game.paddle_1, &game.paddle_2);
+        check_paddle_controls(&game.paddle_1, &game.paddle_2, joystick_1,
+                              joystick_2);
 
         update_paddle(&game.paddle_1, elapsed_time);
         update_paddle(&game.paddle_2, elapsed_time);
