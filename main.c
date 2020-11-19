@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <time.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 const int AUDIO_SAMPLING_RATE = 44100;
 const float AUDIO_AMPLITUDE = 0.025 * INT16_MAX; // volume
 
