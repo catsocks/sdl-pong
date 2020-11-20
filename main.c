@@ -385,16 +385,21 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    // The audio subsystem is not required.
-    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0 && AUDIO_ENABLED) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                     "Initialize SDL audio subsystem: %s", SDL_GetError());
+    if (AUDIO_ENABLED) {
+        // The audio subsystem is not required.
+        if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                         "Initialize SDL audio subsystem: %s", SDL_GetError());
+        }
     }
 
-    // The joystick subsystem is not required.
-    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0 && JOYSTICKS_ENABLED) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                     "Initialize SDL joystick subsystem: %s", SDL_GetError());
+    if (JOYSTICKS_ENABLED) {
+        // The joystick subsystem is not required.
+        if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                         "Initialize SDL joystick subsystem: %s",
+                         SDL_GetError());
+        }
     }
 
     // Open an audio device for playing signed 16-bit mono samples and ignore if
