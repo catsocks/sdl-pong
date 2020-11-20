@@ -92,7 +92,7 @@ struct game {
     float round_over_timeout;
 };
 
-int clamp(int x, int min, int max) {
+float clamp(float x, float min, float max) {
     return x < min ? min : x > max ? max : x;
 }
 
@@ -213,9 +213,8 @@ void update_ball(struct game *game, struct audio *audio, struct ball *ball,
     if (game->round_over_timeout != 0) {
         if (ball->x < 0 || ball->x + BALL_SIZE > WINDOW_WIDTH) {
             ball->velocity.x *= -1;
+            ball->x = clamp(ball->x, 0, WINDOW_WIDTH - BALL_SIZE);
         }
-
-        ball->x = clamp(ball->x, 0, WINDOW_WIDTH - BALL_SIZE);
     }
 }
 
