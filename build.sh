@@ -1,8 +1,8 @@
 mkdir -p build
 cc -o build/tennis \
-	main.c \
+	src/main.c src/math.c src/font.c src/tonegen.c \
 	-std=c99 \
-	$(sdl2-config --cflags --libs) \
-	-lm \
 	-Wall -Wextra -pedantic \
+	-lm \
+	$(sdl2-config --cflags --libs) \
 	"$@"
