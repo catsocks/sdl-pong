@@ -293,7 +293,11 @@ void render_ball(SDL_Renderer *renderer, struct ball ball) {
     }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+    // SDL requires that main accept argc and argv when using MSVC or MinGW.
+    (void)argc;
+    (void)argv;
+
     // For choosing which paddle gets served the ball first and the vertical
     // position and angle of the ball every time it is served.
     srand(time(NULL));
