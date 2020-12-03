@@ -7,7 +7,7 @@
 #include "tonegen.h"
 
 #ifndef CHEATS_ENABLED
-const bool CHEATS_ENABLED = true;
+const bool CHEATS_ENABLED = false;
 #endif
 
 const bool AUDIO_ENABLED = true;
