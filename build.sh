@@ -1,6 +1,6 @@
 mkdir -p build
 cc -o build/tennis \
-	src/main.c src/math.c src/font.c src/tonegen.c \
+	src/*.c \
 	-std=c99 \
 	-Wall -Wextra -pedantic \
 	-lm \
