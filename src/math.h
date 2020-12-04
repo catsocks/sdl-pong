@@ -9,4 +9,4 @@
 
 float clamp(float x, float min, float max);
 int rand_range(int min, int max);
-double rand_double();
+float frand_range(float min, float max);

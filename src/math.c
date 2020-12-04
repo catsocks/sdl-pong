@@ -1,13 +1,15 @@
 #include "math.h"
 
 float clamp(float x, float min, float max) {
-    return x < min ? min : x > max ? max : x;
+    return fmaxf(min, fminf(x, max));
 }
 
+// Return a random integer between min and max (inclusive).
 int rand_range(int min, int max) {
-    return min + (rand() / ((RAND_MAX / (max - min + 1)) + 1));
+	return min + (rand() / ((RAND_MAX / (max - min + 1)) + 1));
 }
 
-double rand_double() {
-    return rand() / (double)RAND_MAX;
+// Return a random floating-point number between min and max (inclusive).
+float frand_range(float min, float max) {
+    return min + (rand() / ((double)RAND_MAX / (max - min)));
 }

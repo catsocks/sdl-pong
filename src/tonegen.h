@@ -4,12 +4,12 @@
 
 #include "math.h"
 
-#define TONEGEN_SAMPLING_RATE 44100
-#define TONEGEN_FORMAT_SIZE sizeof(int16_t) // audio sample format size
-#define TONEGEN_BUF_MAX_LENGTH (TONEGEN_SAMPLING_RATE / 10)
-#define TONEGEN_BUF_MAX_SIZE (TONEGEN_BUF_MAX_LENGTH * TONEGEN_FORMAT_SIZE)
+#define TONEGEN_SAMPLING_RATE 44100         // samples per second
+#define TONEGEN_FORMAT_SIZE sizeof(int16_t) // sample format
+#define TONEGEN_BUFFER_MAX_LEN (TONEGEN_SAMPLING_RATE / 10)
+#define TONEGEN_BUFFER_MAX_SIZE (TONEGEN_BUFFER_MAX_LEN * TONEGEN_FORMAT_SIZE)
 
-struct tone {
+struct tonegen_tone {
     int freq;
     int duration; // in ms
 };
@@ -17,11 +17,11 @@ struct tone {
 struct tonegen {
     int freq;
     int sample_idx;
-    int remaining_samples; // samples to be generated
-    int16_t buf[TONEGEN_BUF_MAX_SIZE];
-    size_t buf_size;
+    int remaining_samples; // to be generated
+    int16_t buffer[TONEGEN_BUFFER_MAX_SIZE];
+    size_t buffer_size;
 };
 
-void tonegen_set_tone(struct tonegen *gen, struct tone tone);
+void tonegen_set_tone(struct tonegen *gen, struct tonegen_tone tone);
 void tonegen_generate(struct tonegen *gen);
 void tonegen_queue(struct tonegen *gen, SDL_AudioDeviceID device_id);
