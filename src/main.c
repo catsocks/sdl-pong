@@ -65,6 +65,203 @@ struct game {
     float round_restart_timeout;
 };
 
+struct paddle make_paddle(int no);
+void serve_ball(struct ball *ball, int paddle_no, bool round_over);
+void check_paddle_controls(struct paddle *paddle_1, struct paddle *paddle_2,
+                           SDL_Joystick *joystick_1, SDL_Joystick *joystick_2);
+void update_paddle(struct paddle *paddle, double elapsed_time);
+void update_ball(struct game *game, struct tonegen *tonegen, struct ball *ball,
+                 double elapsed_time);
+void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle);
+bool paddle_intersects_ball(struct paddle paddle, struct ball ball);
+void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen);
+void check_paddle_miss_ball(struct game *game, struct tonegen *tonegen);
+void check_round_is_over(struct game *game);
+void check_round_restart_timeout(struct game *game, double elapsed_time);
+void render_paddle_score(SDL_Renderer *renderer, struct paddle paddle);
+void render_net(SDL_Renderer *renderer);
+void render_paddle(SDL_Renderer *renderer, struct game *game,
+                   struct paddle paddle);
+void render_ball(SDL_Renderer *renderer, struct ball ball);
+
+int main(int argc, char *argv[]) {
+    // SDL requires that main accept argc and argv when using MSVC or MinGW.
+    (void)argc;
+    (void)argv;
+
+    // For choosing which paddle gets served the ball first and the vertical
+    // position and angle of the ball every time it is served.
+    srand(time(NULL));
+
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "Couldn't initialize SDL: %s", SDL_GetError());
+        return EXIT_FAILURE;
+    }
+
+    if (AUDIO_ENABLED) {
+        if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                         "Couldn't initialize the SDL audio subsystem: %s",
+                         SDL_GetError());
+        }
+    }
+
+    if (JOYSTICKS_ENABLED) {
+        if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                         "Couldn't initialize the SDL joystick subsystem: %s",
+                         SDL_GetError());
+        }
+    }
+
+    // Try to open an audio device for playing mono signed 16-bit samples.
+    SDL_AudioDeviceID audio_device_id =
+        SDL_OpenAudioDevice(NULL, 0,
+                            &(SDL_AudioSpec){.freq = TONEGEN_SAMPLING_RATE,
+                                             .format = AUDIO_S16SYS,
+                                             .channels = 1,
+                                             .samples = 2048},
+                            NULL, 0);
+    if (audio_device_id == 0 && AUDIO_ENABLED) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "Couldn't open an audio device: %s", SDL_GetError());
+    }
+
+    // Unpause the audio device which is paused by default.
+    SDL_PauseAudioDevice(audio_device_id, 0);
+
+    // Create a hidden window so it may only be shown after the game is mostly
+    // initialized.
+    SDL_Window *window = SDL_CreateWindow(
+        "Tennis", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
+    if (window == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window: %s",
+                     SDL_GetError());
+        return EXIT_FAILURE;
+    }
+
+    SDL_Renderer *renderer =
+        SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+    if (renderer == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "Couldn't create renderer: %s", SDL_GetError());
+        return EXIT_FAILURE;
+    }
+
+    // For automatic resolution-indenpendent scaling.
+    SDL_RenderSetLogicalSize(renderer, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    // Assume at most two joysticks are detected, so that they'll be at index 0
+    // and 1.
+    SDL_Joystick *joystick_1 = SDL_JoystickOpen(0);
+    SDL_Joystick *joystick_2 = SDL_JoystickOpen(1);
+
+    SDL_ShowWindow(window);
+
+    bool running = true;
+
+    uint64_t counter_time = SDL_GetPerformanceCounter();
+
+    struct game game = {
+        .paddle_1 = make_paddle(1),
+        .paddle_2 = make_paddle(2),
+    };
+
+    serve_ball(&game.ball, rand_range(1, 2), false);
+
+    struct tonegen tonegen = {0};
+
+    while (running) {
+        uint64_t last_counter_time = counter_time;
+        counter_time = SDL_GetPerformanceCounter();
+
+        // For maintaining a constant game speed regardless of how fast the game
+        // is running.
+        double elapsed_time = (counter_time - last_counter_time) /
+                              (double)SDL_GetPerformanceFrequency();
+
+        // Poll events and handle quitting, toggling fullscreen and changing
+        // the score of paddles for fun.
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+            case SDL_QUIT:
+                running = false;
+                break;
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym) {
+                case SDLK_F11:
+                    if (SDL_GetWindowFlags(window) &
+                        SDL_WINDOW_FULLSCREEN_DESKTOP) {
+                        SDL_SetWindowFullscreen(window, 0);
+                    } else {
+                        SDL_SetWindowFullscreen(window,
+                                                SDL_WINDOW_FULLSCREEN_DESKTOP);
+                    }
+                    break;
+                case SDLK_1:
+                    if (CHEATS_ENABLED) {
+                        game.paddle_1.score += 1;
+                    }
+                    break;
+                case SDLK_2:
+                    if (CHEATS_ENABLED) {
+                        game.paddle_2.score += 1;
+                    }
+                    break;
+                }
+                break;
+            }
+        }
+
+        // Begin to update the game state.
+        check_paddle_controls(&game.paddle_1, &game.paddle_2, joystick_1,
+                              joystick_2);
+
+        update_paddle(&game.paddle_1, elapsed_time);
+        update_paddle(&game.paddle_2, elapsed_time);
+        update_ball(&game, &tonegen, &game.ball, elapsed_time);
+
+        check_paddle_miss_ball(&game, &tonegen);
+        check_paddle_hit_ball(&game, &tonegen);
+
+        check_round_is_over(&game);
+        check_round_restart_timeout(&game, elapsed_time);
+
+        // Clear the renderer with black.
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        // Begin drawing the game with white.
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+        render_paddle_score(renderer, game.paddle_1);
+        render_paddle_score(renderer, game.paddle_2);
+
+        render_net(renderer);
+        render_paddle(renderer, &game, game.paddle_1);
+        render_paddle(renderer, &game, game.paddle_2);
+        render_ball(renderer, game.ball);
+
+        // Generate and queue audio.
+        tonegen_generate(&tonegen);
+        tonegen_queue(&tonegen, audio_device_id);
+
+        SDL_RenderPresent(renderer);
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+
+    SDL_CloseAudioDevice(audio_device_id);
+
+    SDL_Quit();
+
+    return EXIT_SUCCESS;
+}
+
 struct paddle make_paddle(int no) {
     return (struct paddle){
         .no = no,
@@ -291,182 +488,4 @@ void render_ball(SDL_Renderer *renderer, struct ball ball) {
         SDL_RenderFillRectF(renderer,
                             &(SDL_FRect){ball.x, ball.y, BALL_SIZE, BALL_SIZE});
     }
-}
-
-int main(int argc, char *argv[]) {
-    // SDL requires that main accept argc and argv when using MSVC or MinGW.
-    (void)argc;
-    (void)argv;
-
-    // For choosing which paddle gets served the ball first and the vertical
-    // position and angle of the ball every time it is served.
-    srand(time(NULL));
-
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                     "Couldn't initialize SDL: %s", SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
-    if (AUDIO_ENABLED) {
-        if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                         "Couldn't initialize the SDL audio subsystem: %s",
-                         SDL_GetError());
-        }
-    }
-
-    if (JOYSTICKS_ENABLED) {
-        if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                         "Couldn't initialize the SDL joystick subsystem: %s",
-                         SDL_GetError());
-        }
-    }
-
-    // Try to open an audio device for playing mono signed 16-bit samples.
-    SDL_AudioDeviceID audio_device_id =
-        SDL_OpenAudioDevice(NULL, 0,
-                            &(SDL_AudioSpec){.freq = TONEGEN_SAMPLING_RATE,
-                                             .format = AUDIO_S16SYS,
-                                             .channels = 1,
-                                             .samples = 2048},
-                            NULL, 0);
-    if (audio_device_id == 0 && AUDIO_ENABLED) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                     "Couldn't open an audio device: %s", SDL_GetError());
-    }
-
-    // Unpause the audio device which is paused by default.
-    SDL_PauseAudioDevice(audio_device_id, 0);
-
-    // Create a hidden window so it may only be shown after the game is mostly
-    // initialized.
-    SDL_Window *window = SDL_CreateWindow(
-        "Tennis", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-        WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE);
-    if (window == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window: %s",
-                     SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
-    SDL_Renderer *renderer =
-        SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-    if (renderer == NULL) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                     "Couldn't create renderer: %s", SDL_GetError());
-        return EXIT_FAILURE;
-    }
-
-    // For automatic resolution-indenpendent scaling.
-    SDL_RenderSetLogicalSize(renderer, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    // Assume at most two joysticks are detected, so that they'll be at index 0
-    // and 1.
-    SDL_Joystick *joystick_1 = SDL_JoystickOpen(0);
-    SDL_Joystick *joystick_2 = SDL_JoystickOpen(1);
-
-    SDL_ShowWindow(window);
-
-    bool running = true;
-
-    uint64_t counter_time = SDL_GetPerformanceCounter();
-
-    struct game game = {
-        .paddle_1 = make_paddle(1),
-        .paddle_2 = make_paddle(2),
-    };
-
-    serve_ball(&game.ball, rand_range(1, 2), false);
-
-    struct tonegen tonegen = {0};
-
-    while (running) {
-        uint64_t last_counter_time = counter_time;
-        counter_time = SDL_GetPerformanceCounter();
-
-        // For maintaining a constant game speed regardless of how fast the game
-        // is running.
-        double elapsed_time = (counter_time - last_counter_time) /
-                              (double)SDL_GetPerformanceFrequency();
-
-        // Poll events and handle quitting, toggling fullscreen and changing
-        // the score of paddles for fun.
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-            case SDL_QUIT:
-                running = false;
-                break;
-            case SDL_KEYDOWN:
-                switch (event.key.keysym.sym) {
-                case SDLK_F11:
-                    if (SDL_GetWindowFlags(window) &
-                        SDL_WINDOW_FULLSCREEN_DESKTOP) {
-                        SDL_SetWindowFullscreen(window, 0);
-                    } else {
-                        SDL_SetWindowFullscreen(window,
-                                                SDL_WINDOW_FULLSCREEN_DESKTOP);
-                    }
-                    break;
-                case SDLK_1:
-                    if (CHEATS_ENABLED) {
-                        game.paddle_1.score += 1;
-                    }
-                    break;
-                case SDLK_2:
-                    if (CHEATS_ENABLED) {
-                        game.paddle_2.score += 1;
-                    }
-                    break;
-                }
-                break;
-            }
-        }
-
-        // Begin to update the game state.
-        check_paddle_controls(&game.paddle_1, &game.paddle_2, joystick_1,
-                              joystick_2);
-
-        update_paddle(&game.paddle_1, elapsed_time);
-        update_paddle(&game.paddle_2, elapsed_time);
-        update_ball(&game, &tonegen, &game.ball, elapsed_time);
-
-        check_paddle_miss_ball(&game, &tonegen);
-        check_paddle_hit_ball(&game, &tonegen);
-
-        check_round_is_over(&game);
-        check_round_restart_timeout(&game, elapsed_time);
-
-        // Clear the renderer with black.
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-
-        // Begin drawing the game with white.
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-
-        render_paddle_score(renderer, game.paddle_1);
-        render_paddle_score(renderer, game.paddle_2);
-
-        render_net(renderer);
-        render_paddle(renderer, &game, game.paddle_1);
-        render_paddle(renderer, &game, game.paddle_2);
-        render_ball(renderer, game.ball);
-
-        // Generate and queue audio.
-        tonegen_generate(&tonegen);
-        tonegen_queue(&tonegen, audio_device_id);
-
-        SDL_RenderPresent(renderer);
-    }
-
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-
-    SDL_CloseAudioDevice(audio_device_id);
-
-    SDL_Quit();
-
-    return EXIT_SUCCESS;
 }
