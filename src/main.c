@@ -9,7 +9,7 @@
 // Enabling cheats lets you change the score of either paddle with the keyboard
 // keys 1 and 2 for debugging/fun.
 #ifndef CHEATS_ENABLED
-const bool CHEATS_ENABLED = false;
+#define CHEATS_ENABLED false
 #endif
 
 const bool AUDIO_ENABLED = true;
