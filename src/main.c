@@ -72,14 +72,15 @@ void serve_ball(struct ball *ball, int paddle_no, bool round_over);
 void check_paddle_controls(struct paddle *paddle_1, struct paddle *paddle_2,
                            SDL_Joystick *joystick_1, SDL_Joystick *joystick_2);
 void update_paddle(struct paddle *paddle, double elapsed_time);
-void update_ball(struct game *game, struct tonegen *tonegen, struct ball *ball,
-                 double elapsed_time);
-void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle);
-bool paddle_intersects_ball(struct paddle paddle, struct ball ball);
+void update_ball(struct ball *ball, double elapsed_time);
+void check_ball_hit_wall(struct game *game, struct tonegen *tonegen);
 void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen);
+void check_round_restart_timeout(struct game *game, double elapsed_time);
+bool paddle_intersects_ball(struct paddle paddle, struct ball ball);
 void check_paddle_miss_ball(struct game *game, struct tonegen *tonegen);
 void check_round_is_over(struct game *game);
-void check_round_restart_timeout(struct game *game, double elapsed_time);
+void restart_round(struct game *game);
+void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle);
 void render_paddle_score(SDL_Renderer *renderer, struct paddle paddle);
 void render_net(SDL_Renderer *renderer);
 void render_paddle(SDL_Renderer *renderer, struct game *game,
@@ -225,8 +226,9 @@ int main(int argc, char *argv[]) {
 
         update_paddle(&game.paddle_1, elapsed_time);
         update_paddle(&game.paddle_2, elapsed_time);
-        update_ball(&game, &tonegen, &game.ball, elapsed_time);
+        update_ball(&game.ball, elapsed_time);
 
+        check_ball_hit_wall(&game, &tonegen);
         check_paddle_miss_ball(&game, &tonegen);
         check_paddle_hit_ball(&game, &tonegen);
 
@@ -273,11 +275,10 @@ struct paddle make_paddle(int no) {
     };
 }
 
-// Place the ball on the side of the net of the paddle that it is to be served
-// to and set its velocity so it goes at a random angle towards the paddle.
+// Place the ball on the side of the net of the given paddle and set its
+// velocity so it moves at a random angle towards the paddle.
 void serve_ball(struct ball *ball, int paddle_no, bool round_over) {
     ball->y = rand_range(0, WINDOW_HEIGHT - BALL_SIZE);
-
     ball->speed = BALL_INITIAL_SPEED;
 
     float angle = (-1 + (rand_double() * 2)) * BALL_MAX_SERVE_ANGLE;
@@ -328,8 +329,7 @@ void update_paddle(struct paddle *paddle, double elapsed_time) {
     paddle->y = clamp(paddle->y, 0, WINDOW_HEIGHT - PADDLE_HEIGHT);
 }
 
-void update_ball(struct game *game, struct tonegen *tonegen, struct ball *ball,
-                 double elapsed_time) {
+void update_ball(struct ball *ball, double elapsed_time) {
     if (ball->serve_timeout > 0) {
         ball->serve_timeout -= elapsed_time;
         if (ball->serve_timeout < 0) {
@@ -340,6 +340,10 @@ void update_ball(struct game *game, struct tonegen *tonegen, struct ball *ball,
 
     ball->x += ball->velocity.x * elapsed_time;
     ball->y += ball->velocity.y * elapsed_time;
+}
+
+void check_ball_hit_wall(struct game *game, struct tonegen *tonegen) {
+    struct ball *ball = &game->ball;
 
     // The ball will always bounce off vertical walls.
     if (ball->y < 0 || ball->y + BALL_SIZE > WINDOW_HEIGHT) {
@@ -351,13 +355,41 @@ void update_ball(struct game *game, struct tonegen *tonegen, struct ball *ball,
         ball->y = clamp(ball->y, 0, WINDOW_HEIGHT - BALL_SIZE);
     }
 
-    // The ball will only bounce off horizontal walls when the game is over.
+    // The ball will only bounce off horizontal walls when the round is over.
     if (game->round_restart_timeout != 0) {
         if (ball->x < 0 || ball->x + BALL_SIZE > WINDOW_WIDTH) {
             ball->velocity.x *= -1;
             ball->x = clamp(ball->x, 0, WINDOW_WIDTH - BALL_SIZE);
         }
     }
+}
+
+// Return the ball in the other direction if it hit a paddle.
+void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen) {
+    if (game->round_restart_timeout > 0) {
+        return;
+    }
+
+    if (paddle_intersects_ball(game->paddle_1, game->ball)) {
+        bounce_ball_off_paddle(&game->ball, &game->paddle_1);
+    } else if (paddle_intersects_ball(game->paddle_2, game->ball)) {
+        bounce_ball_off_paddle(&game->ball, &game->paddle_2);
+    } else {
+        return;
+    }
+    tonegen_set_tone(tonegen, PADDLE_HIT_TONE);
+}
+
+// Return whether there is an intersection between the horizontal half of a
+// paddle facing the net, and the ball.
+bool paddle_intersects_ball(struct paddle paddle, struct ball ball) {
+    bool y = paddle.y < ball.y + BALL_SIZE && paddle.y + PADDLE_HEIGHT > ball.y;
+    if (paddle.no == 1) {
+        return paddle.x + (PADDLE_WIDTH / 2.0) < ball.x + BALL_SIZE &&
+               paddle.x + PADDLE_WIDTH > ball.x && y;
+    }
+    return paddle.x < ball.x + BALL_SIZE &&
+           paddle.x + (PADDLE_WIDTH / 2.0) > ball.x && y;
 }
 
 void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
@@ -383,34 +415,6 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
         ball->velocity.x = cos(bounce_angle + M_PI) * ball->speed;
         ball->velocity.y = -sin(bounce_angle + M_PI) * ball->speed;
     }
-}
-
-// Return whether there is an intersection between the horizontal half of a
-// paddle facing the net, and the ball.
-bool paddle_intersects_ball(struct paddle paddle, struct ball ball) {
-    bool y = paddle.y < ball.y + BALL_SIZE && paddle.y + PADDLE_HEIGHT > ball.y;
-    if (paddle.no == 1) {
-        return paddle.x + (PADDLE_WIDTH / 2.0) < ball.x + BALL_SIZE &&
-               paddle.x + PADDLE_WIDTH > ball.x && y;
-    }
-    return paddle.x < ball.x + BALL_SIZE &&
-           paddle.x + (PADDLE_WIDTH / 2.0) > ball.x && y;
-}
-
-// Return the ball in the other direction if it hit a paddle.
-void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen) {
-    if (game->round_restart_timeout > 0) {
-        return;
-    }
-
-    if (paddle_intersects_ball(game->paddle_1, game->ball)) {
-        bounce_ball_off_paddle(&game->ball, &game->paddle_1);
-    } else if (paddle_intersects_ball(game->paddle_2, game->ball)) {
-        bounce_ball_off_paddle(&game->ball, &game->paddle_2);
-    } else {
-        return;
-    }
-    tonegen_set_tone(tonegen, PADDLE_HIT_TONE);
 }
 
 // Score a point and serve the ball when a paddle misses hitting the ball.
