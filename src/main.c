@@ -6,6 +6,8 @@
 #include "math.h"
 #include "tonegen.h"
 
+// Enabling cheats lets you change the score of either paddle with the keyboard
+// keys 1 and 2 for debugging/fun.
 #ifndef CHEATS_ENABLED
 const bool CHEATS_ENABLED = false;
 #endif
@@ -85,7 +87,8 @@ void render_paddle(SDL_Renderer *renderer, struct game *game,
 void render_ball(SDL_Renderer *renderer, struct ball ball);
 
 int main(int argc, char *argv[]) {
-    // SDL requires that main accept argc and argv when using MSVC or MinGW.
+    // Suppress unused variable warnings, SDL requires that main accept argc and
+    // argv when using MSVC or MinGW.
     (void)argc;
     (void)argv;
 
@@ -184,8 +187,8 @@ int main(int argc, char *argv[]) {
 
         // Poll events and handle quitting, toggling fullscreen and changing
         // the score of paddles for fun.
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
+        SDL_Event event = {0};
+        while (SDL_PollEvent(&event) == 1) {
             switch (event.type) {
             case SDL_QUIT:
                 running = false;
