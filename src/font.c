@@ -1,6 +1,6 @@
 #include "font.h"
 
-#define DIGIT_POINTS_MAX_LEN 10
+#define DIGIT_POINTS_MAX_LENGTH 10
 #define DIGITS_LENGTH 10
 
 const float DIGIT_WIDTH = 0.8;
@@ -9,8 +9,8 @@ const float DIGIT_SPREAD_FACTOR = 0.3;
 const float NUMBER_DIGIT_GAP_FACTOR = 1;
 
 struct digit {
-    SDL_FPoint points[DIGIT_POINTS_MAX_LEN];
-    int points_len;
+    SDL_FPoint points[DIGIT_POINTS_MAX_LENGTH];
+    int points_length;
 };
 
 struct digit digits[DIGITS_LENGTH] = {
@@ -121,12 +121,12 @@ static void render_digit(SDL_Renderer *renderer, SDL_FPoint pos, int height,
     float spread = scale_factor * DIGIT_SPREAD_FACTOR;
 
     struct digit digit = digits[digit_num % DIGITS_LENGTH];
-    for (int i = 0; i < digit.points_len; i += 2) {
+    for (int i = 0; i < digit.points_length; i += 2) {
         float x1 = digit.points[i].x;
         float y1 = digit.points[i].y;
 
-        float x2 = digit.points[(i + 1) % digit.points_len].x;
-        float y2 = digit.points[(i + 1) % digit.points_len].y;
+        float x2 = digit.points[(i + 1) % digit.points_length].x;
+        float y2 = digit.points[(i + 1) % digit.points_length].y;
 
         x1 *= scale_factor;
         x2 *= scale_factor;
