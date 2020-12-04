@@ -186,8 +186,6 @@ int main(int argc, char *argv[]) {
         double elapsed_time = (counter_time - last_counter_time) /
                               (double)SDL_GetPerformanceFrequency();
 
-        // Poll events and handle quitting, toggling fullscreen and changing
-        // the score of paddles for fun.
         SDL_Event event = {0};
         while (SDL_PollEvent(&event) == 1) {
             switch (event.type) {
@@ -196,7 +194,11 @@ int main(int argc, char *argv[]) {
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
+                case SDLK_F5:
+                    restart_round(&game);
+                    break;
                 case SDLK_F11:
+                    // Toggle desktop fullscreen.
                     if (SDL_GetWindowFlags(window) &
                         SDL_WINDOW_FULLSCREEN_DESKTOP) {
                         SDL_SetWindowFullscreen(window, 0);
@@ -455,11 +457,15 @@ void check_round_restart_timeout(struct game *game, double elapsed_time) {
         game->round_restart_timeout -= elapsed_time;
         if (game->round_restart_timeout <= 0) {
             game->round_restart_timeout = 0;
-            game->paddle_1.score = 0;
-            game->paddle_2.score = 0;
-            serve_ball(&game->ball, rand_range(1, 2), false);
+            restart_round(game);
         }
     }
+}
+
+void restart_round(struct game *game) {
+    game->paddle_1.score = 0;
+    game->paddle_2.score = 0;
+    serve_ball(&game->ball, rand_range(1, 2), false);
 }
 
 void render_paddle_score(SDL_Renderer *renderer, struct paddle paddle) {

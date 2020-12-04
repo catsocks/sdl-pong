@@ -21,6 +21,7 @@ paddles, and they can be used simultaneously with the keyboard controls below.
 
 * <kbd>W</kbd> and <kbd>S</kbd> moves the paddle on the left up and down
 * <kbd>Up</kbd> and <kbd>Down</kbd> moves the paddle on the right up and down
+* <kbd>F5</kbd> restarts the round
 * <kbd>F11</kbd> toggles desktop fullscreen mode
 
 ## Build
