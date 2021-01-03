@@ -1,4 +1,4 @@
-# SDL Tennis
+# Tennis
 
 An attempt to recreate the original [Pong](https://en.wikipedia.org/wiki/Pong)
 game from 1972 with sound in C using only the [SDL](https://www.libsdl.org/)
