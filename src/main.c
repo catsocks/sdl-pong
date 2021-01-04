@@ -78,26 +78,17 @@ int main(int argc, char *argv[]) {
     // position and angle of the ball every time it is served.
     srand(time(NULL));
 
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    int flags = SDL_INIT_VIDEO;
+    if (AUDIO_ENABLED) {
+        flags |= SDL_INIT_AUDIO;
+    }
+    if (JOYSTICKS_ENABLED) {
+        flags |= SDL_INIT_JOYSTICK;
+    }
+    if (SDL_Init(flags) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                      "Couldn't initialize SDL: %s", SDL_GetError());
         return EXIT_FAILURE;
-    }
-
-    if (AUDIO_ENABLED) {
-        if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                         "Couldn't initialize the SDL audio subsystem: %s",
-                         SDL_GetError());
-        }
-    }
-
-    if (JOYSTICKS_ENABLED) {
-        if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                         "Couldn't initialize the SDL joystick subsystem: %s",
-                         SDL_GetError());
-        }
     }
 
     // Try to open an audio device for playing mono signed 16-bit samples.
