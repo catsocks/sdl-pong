@@ -7,7 +7,6 @@
 #define TONEGEN_SAMPLING_RATE 44100         // samples per second
 #define TONEGEN_FORMAT_SIZE sizeof(int16_t) // sample format
 #define TONEGEN_BUFFER_MAX_LEN (TONEGEN_SAMPLING_RATE / 10)
-#define TONEGEN_BUFFER_MAX_SIZE (TONEGEN_BUFFER_MAX_LEN * TONEGEN_FORMAT_SIZE)
 
 struct tonegen_tone {
     int freq;
@@ -17,8 +16,8 @@ struct tonegen_tone {
 struct tonegen {
     int freq;
     int sample_idx;
-    int remaining_samples; // to be generated
-    int16_t buffer[TONEGEN_BUFFER_MAX_SIZE];
+    int remaining_samples; // samples yet to be generated
+    int16_t buffer[TONEGEN_BUFFER_MAX_LEN];
     size_t buffer_size;
 };
 
