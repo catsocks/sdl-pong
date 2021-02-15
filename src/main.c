@@ -374,7 +374,7 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
         ball->rect.x = paddle->rect.x + paddle->rect.w;
     } else {
         ball->rect.x = paddle->rect.x - ball->rect.w;
-        bounce_angle += M_PI;
+        bounce_angle = M_PI - bounce_angle; // flip angle horizontally
     }
 
     ball->velocity.x = cosf(bounce_angle) * speed;
