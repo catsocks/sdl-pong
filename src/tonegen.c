@@ -1,7 +1,12 @@
 #include "tonegen.h"
 
 static const int FORMAT_MAX_VALUE = INT16_MAX; // determ. by TONEGEN_FORMAT_SIZE
-static const int AMPLITUDE = 0.025 * FORMAT_MAX_VALUE; // volume
+
+struct tonegen make_tonegen(float volume_percentage) {
+    return (struct tonegen){
+        .amplitude = (volume_percentage / 100.0f) * FORMAT_MAX_VALUE,
+    };
+}
 
 void tonegen_set_tone(struct tonegen *gen, struct tonegen_tone tone) {
     gen->freq = tone.freq;
@@ -9,11 +14,11 @@ void tonegen_set_tone(struct tonegen *gen, struct tonegen_tone tone) {
     gen->remaining_samples = (tone.duration / 1000.0) * TONEGEN_SAMPLING_RATE;
 }
 
-static int square_wave_sample(int idx, int freq) {
+static int square_wave_sample(int idx, int freq, int amplitude) {
     if (sin(2.0 * M_PI * freq * (idx / (double)TONEGEN_SAMPLING_RATE)) >= 0.0) {
-        return AMPLITUDE;
+        return amplitude;
     }
-    return -AMPLITUDE;
+    return -amplitude;
 }
 
 void tonegen_generate(struct tonegen *gen) {
@@ -25,7 +30,8 @@ void tonegen_generate(struct tonegen *gen) {
     gen->buffer_size = len * TONEGEN_FORMAT_SIZE;
 
     for (int i = 0; i < len; i++) {
-        gen->buffer[i] = square_wave_sample(gen->sample_idx + i, gen->freq);
+        gen->buffer[i] =
+            square_wave_sample(gen->sample_idx + i, gen->freq, gen->amplitude);
     }
     gen->sample_idx += len;
 }

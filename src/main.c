@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
         .max_score = 11,
     };
 
-    struct tonegen tonegen = {0};
+    struct tonegen tonegen = make_tonegen(2.5f);
 
     while (running) {
         uint64_t last_counter_time = counter_time;
