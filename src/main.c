@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     // Try to open an audio device for playing mono signed 16-bit samples.
     SDL_AudioDeviceID audio_device_id =
         SDL_OpenAudioDevice(NULL, 0,
-                            &(SDL_AudioSpec){.freq = TONEGEN_SAMPLING_RATE,
+                            &(SDL_AudioSpec){.freq = TONEGEN_SAMPLES_PER_SECOND,
                                              .format = AUDIO_S16SYS,
                                              .channels = 1,
                                              .samples = 2048},
@@ -322,7 +322,7 @@ void check_ball_hit_wall(struct game *game, struct tonegen *tonegen) {
     if (ball->rect.y < 0.0f || ball->rect.y + ball->rect.h > WINDOW_HEIGHT) {
         ball->velocity.y *= -1.0f;
         if (!game->round_over) {
-            tonegen_set_tone(tonegen, WALL_HIT_TONE);
+            set_tonegen_tone(tonegen, WALL_HIT_TONE);
         }
 
         ball->rect.y = clamp(ball->rect.y, 0.0f, WINDOW_HEIGHT - ball->rect.h);
@@ -390,7 +390,7 @@ void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen) {
         } else {
             return;
         }
-        tonegen_set_tone(tonegen, PADDLE_HIT_TONE);
+        set_tonegen_tone(tonegen, PADDLE_HIT_TONE);
     }
 }
 
@@ -403,7 +403,7 @@ void check_paddle_missed_ball(struct game *game, struct tonegen *tonegen) {
             return;
         }
         game->ball = make_ball(1, false);
-        tonegen_set_tone(tonegen, SCORE_TONE);
+        set_tonegen_tone(tonegen, SCORE_TONE);
     } else if (game->ball.rect.x > WINDOW_WIDTH) {
         // Paddle 2 missed the ball.
         game->paddle_1.score++;
@@ -412,7 +412,7 @@ void check_paddle_missed_ball(struct game *game, struct tonegen *tonegen) {
             return;
         }
         game->ball = make_ball(2, false);
-        tonegen_set_tone(tonegen, SCORE_TONE);
+        set_tonegen_tone(tonegen, SCORE_TONE);
     }
 }
 

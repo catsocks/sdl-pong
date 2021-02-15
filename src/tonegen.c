@@ -8,14 +8,17 @@ struct tonegen make_tonegen(float volume_percentage) {
     };
 }
 
-void tonegen_set_tone(struct tonegen *gen, struct tonegen_tone tone) {
+void set_tonegen_tone(struct tonegen *gen, struct tonegen_tone tone) {
     gen->freq = tone.freq;
     gen->sample_idx = 0;
-    gen->remaining_samples = (tone.duration / 1000.0) * TONEGEN_SAMPLING_RATE;
+    gen->remaining_samples =
+        (tone.duration / 1000.0) * TONEGEN_SAMPLES_PER_SECOND;
 }
 
-static int square_wave_sample(int idx, int freq, int amplitude) {
-    if (sin(2.0 * M_PI * freq * (idx / (double)TONEGEN_SAMPLING_RATE)) >= 0.0) {
+static int square_wave_sample(int sample_idx, int freq, int amplitude) {
+    int wave_period = TONEGEN_SAMPLES_PER_SECOND / freq;
+    int half_period = wave_period / 2;
+    if ((sample_idx / half_period) % 2 == 0) {
         return amplitude;
     }
     return -amplitude;
@@ -23,8 +26,8 @@ static int square_wave_sample(int idx, int freq, int amplitude) {
 
 void tonegen_generate(struct tonegen *gen) {
     int len = gen->remaining_samples;
-    if (len > TONEGEN_BUFFER_MAX_LEN) {
-        len = TONEGEN_BUFFER_MAX_LEN;
+    if (len > TONEGEN_BUFFER_MAX_LENGTH) {
+        len = TONEGEN_BUFFER_MAX_LENGTH;
     }
     gen->remaining_samples -= len;
     gen->buffer_size = len * TONEGEN_FORMAT_SIZE;
