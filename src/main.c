@@ -129,8 +129,8 @@ int main(int argc, char *argv[]) {
     // For automatic resolution-indenpendent scaling.
     SDL_RenderSetLogicalSize(renderer, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    // Assume at most two joysticks are detected, so that they'll be at index 0
-    // and 1.
+    // Assumes that at most two joysticks will be detected, so they'll be at
+    // index 0 and 1.
     SDL_Joystick *joystick_1 = SDL_JoystickOpen(0);
     SDL_Joystick *joystick_2 = SDL_JoystickOpen(1);
 
@@ -357,8 +357,9 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
     float intersect = paddle->rect.y + (paddle->rect.h / 2.0f) - ball->rect.y -
                       (ball->rect.h / 2.0f);
 
-    float max_angle = M_PI / 4.0f;
-    float bounce_angle = (intersect / (paddle->rect.h / 2.0)) * max_angle;
+    float max_bounce_angle = M_PI / 4.0f;
+    float bounce_angle =
+        (intersect / (paddle->rect.h / 2.0)) * max_bounce_angle;
 
     // The length of the velocity vector.
     float speed = sqrtf((ball->velocity.y * ball->velocity.y) +
@@ -380,7 +381,6 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
     ball->velocity.y = -sinf(bounce_angle) * speed;
 }
 
-// Return the ball in the other direction if it hit a paddle.
 void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen) {
     if (!game->round_over) {
         if (paddle_intersects_ball(game->paddle_1, game->ball)) {
@@ -394,24 +394,25 @@ void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen) {
     }
 }
 
-// Score a point and serve the ball when a paddle misses hitting the ball.
 void check_paddle_missed_ball(struct game *game, struct tonegen *tonegen) {
     if (game->ball.rect.x + game->ball.rect.w < 0) {
-        if (game->paddle_2.score == game->max_score - 1) {
-            game->ball = make_ball(2, true);
-        } else {
-            game->ball = make_ball(1, false);
-            tonegen_set_tone(tonegen, SCORE_TONE);
-        }
+        // Paddle 1 missed the ball.
         game->paddle_2.score++;
-    } else if (game->ball.rect.x > WINDOW_WIDTH) {
-        if (game->paddle_1.score == game->max_score - 1) {
-            game->ball = make_ball(1, true);
-        } else {
-            game->ball = make_ball(2, false);
-            tonegen_set_tone(tonegen, SCORE_TONE);
+        if (game->paddle_2.score == game->max_score) {
+            game->ball = make_ball(2, true);
+            return;
         }
+        game->ball = make_ball(1, false);
+        tonegen_set_tone(tonegen, SCORE_TONE);
+    } else if (game->ball.rect.x > WINDOW_WIDTH) {
+        // Paddle 2 missed the ball.
         game->paddle_1.score++;
+        if (game->paddle_1.score == game->max_score) {
+            game->ball = make_ball(1, true);
+            return;
+        }
+        game->ball = make_ball(2, false);
+        tonegen_set_tone(tonegen, SCORE_TONE);
     }
 }
 

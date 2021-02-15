@@ -109,7 +109,7 @@ static float rendered_digit_width(int height) {
     return height * ((DIGIT_LINE_SPREAD_FACTOR / 2.0f) + DIGIT_HALF_WIDTH);
 }
 
-// The top-left corner of the digit will be equal to position.
+// The top-left corner of the digit will be equal to given position.
 static void render_digit(SDL_Renderer *renderer, SDL_FPoint position,
                          int height, int digit) {
     float scale_factor = height / 2.0f;
