@@ -10,7 +10,6 @@ struct tonegen make_tonegen(float volume_percentage) {
 
 void set_tonegen_tone(struct tonegen *gen, struct tonegen_tone tone) {
     gen->freq = tone.freq;
-    gen->sample_idx = 0;
     gen->remaining_samples =
         (tone.duration / 1000.0) * TONEGEN_SAMPLES_PER_SECOND;
 }

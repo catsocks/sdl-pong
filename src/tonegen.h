@@ -16,7 +16,7 @@ struct tonegen_tone {
 struct tonegen {
     int amplitude;
     int freq;
-    int sample_idx;
+    uint32_t sample_idx;
     int remaining_samples; // samples yet to be generated
     int16_t buffer[TONEGEN_BUFFER_MAX_LENGTH];
     size_t buffer_size;
