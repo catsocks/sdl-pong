@@ -366,7 +366,7 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
                         (ball->velocity.x * ball->velocity.x));
 
     // Increment speed if it hasn't reached the limit.
-    if (speed < 500) {
+    if (speed < 550) {
         speed += 20;
     }
 
