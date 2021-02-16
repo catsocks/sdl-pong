@@ -156,6 +156,7 @@ int main(int argc, char *argv[]) {
         // can run.
         double elapsed_time = (counter_time - last_counter_time) /
                               (double)SDL_GetPerformanceFrequency();
+        elapsed_time = fmin(elapsed_time, 1 / 60.0);
 
         SDL_Event event = {0};
         while (SDL_PollEvent(&event) == 1) {
