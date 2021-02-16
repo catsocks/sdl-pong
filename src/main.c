@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
 
     bool running = true;
 
-    uint64_t counter_time = SDL_GetPerformanceCounter();
+    uint64_t current_time = SDL_GetPerformanceCounter();
 
     struct game game = {
         .paddle_1 = make_paddle(1),
@@ -150,11 +150,9 @@ int main(int argc, char *argv[]) {
     struct tonegen tonegen = make_tonegen(2.5f);
 
     while (running) {
-        uint64_t last_counter_time = counter_time;
-        counter_time = SDL_GetPerformanceCounter();
-        // For maintaining a constant game speed regardless of how fast the game
-        // can run.
-        double elapsed_time = (counter_time - last_counter_time) /
+        uint64_t previous_time = current_time;
+        current_time = SDL_GetPerformanceCounter();
+        double elapsed_time = (current_time - previous_time) /
                               (double)SDL_GetPerformanceFrequency();
         elapsed_time = fmin(elapsed_time, 1 / 60.0);
 
