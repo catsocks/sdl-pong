@@ -206,8 +206,10 @@ void main_loop(void *arg) {
             break;
         case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
-            case SDLK_F5:
-                restart_round(game);
+            case SDLK_r:
+                if (SDL_GetModState() & KMOD_SHIFT) {
+                    restart_round(game);
+                }
                 break;
             case SDLK_F11:
 #ifdef __EMSCRIPTEN__
