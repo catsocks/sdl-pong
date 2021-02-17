@@ -1,6 +1,9 @@
 #include <SDL.h>
 #include <stdbool.h>
 #include <time.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #include "digits.h"
 #include "math.h"
@@ -51,6 +54,19 @@ struct game {
     uint32_t round_restart_timeout;
 };
 
+struct context {
+    SDL_AudioDeviceID audio_device_id;
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    SDL_Joystick *joystick_1;
+    SDL_Joystick *joystick_2;
+    bool quit_requested;
+    struct game game;
+    struct tonegen tonegen;
+    uint64_t current_time;
+};
+
+void main_loop(void *arg);
 struct paddle make_paddle(int no);
 struct ball make_ball(int paddle_no, bool round_over);
 void check_paddle_controls(struct paddle *paddle, SDL_Joystick *joystick);
@@ -136,94 +152,30 @@ int main(int argc, char *argv[]) {
 
     SDL_ShowWindow(window);
 
-    bool running = true;
-
-    uint64_t current_time = SDL_GetPerformanceCounter();
-
-    struct game game = {
-        .paddle_1 = make_paddle(1),
-        .paddle_2 = make_paddle(2),
-        .ball = make_ball(rand_range(1, 2), false),
-        .max_score = 11,
+    struct context context = {
+        .audio_device_id = audio_device_id,
+        .window = window,
+        .renderer = renderer,
+        .joystick_1 = joystick_1,
+        .joystick_2 = joystick_2,
+        .current_time = SDL_GetPerformanceCounter(),
+        .game =
+            {
+                .paddle_1 = make_paddle(1),
+                .paddle_2 = make_paddle(2),
+                .ball = make_ball(rand_range(1, 2), false),
+                .max_score = 11,
+            },
+        .tonegen = make_tonegen(2.5f),
     };
 
-    struct tonegen tonegen = make_tonegen(2.5f);
-
-    while (running) {
-        uint64_t previous_time = current_time;
-        current_time = SDL_GetPerformanceCounter();
-        double elapsed_time = (current_time - previous_time) /
-                              (double)SDL_GetPerformanceFrequency();
-        elapsed_time = fmin(elapsed_time, 1 / 60.0);
-
-        SDL_Event event = {0};
-        while (SDL_PollEvent(&event) == 1) {
-            switch (event.type) {
-            case SDL_QUIT:
-                running = false;
-                break;
-            case SDL_KEYDOWN:
-                switch (event.key.keysym.sym) {
-                case SDLK_F5:
-                    restart_round(&game);
-                    break;
-                case SDLK_F11:
-                    // Toggle desktop fullscreen.
-                    if (SDL_GetWindowFlags(window) &
-                        SDL_WINDOW_FULLSCREEN_DESKTOP) {
-                        SDL_SetWindowFullscreen(window, 0);
-                    } else {
-                        SDL_SetWindowFullscreen(window,
-                                                SDL_WINDOW_FULLSCREEN_DESKTOP);
-                    }
-                    break;
-                case SDLK_1:
-                    if (CHEATS_ENABLED) {
-                        game.paddle_1.score += 1;
-                    }
-                    break;
-                case SDLK_2:
-                    if (CHEATS_ENABLED) {
-                        game.paddle_2.score += 1;
-                    }
-                    break;
-                }
-                break;
-            }
-        }
-
-        check_paddle_controls(&game.paddle_1, joystick_1);
-        check_paddle_controls(&game.paddle_2, joystick_2);
-
-        update_paddle(&game.paddle_1, elapsed_time);
-        update_paddle(&game.paddle_2, elapsed_time);
-        update_ball(&game.ball, elapsed_time);
-
-        check_ball_hit_wall(&game, &tonegen);
-        check_paddle_missed_ball(&game, &tonegen);
-        check_paddle_hit_ball(&game, &tonegen);
-
-        check_round_over(&game);
-        check_round_restart_timeout(&game);
-
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // black
-        SDL_RenderClear(renderer);
-
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // white
-
-        render_score(renderer, game.paddle_1);
-        render_score(renderer, game.paddle_2);
-
-        render_net(renderer);
-        render_paddle(renderer, &game, game.paddle_1);
-        render_paddle(renderer, &game, game.paddle_2);
-        render_ball(renderer, game.ball);
-
-        tonegen_generate(&tonegen);
-        tonegen_queue(&tonegen, audio_device_id);
-
-        SDL_RenderPresent(renderer);
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop_arg(main_loop, &context, 0, 1);
+#else
+    while (!context.quit_requested) {
+        main_loop(&context);
     }
+#endif
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -233,6 +185,86 @@ int main(int argc, char *argv[]) {
     SDL_Quit();
 
     return EXIT_SUCCESS;
+}
+
+void main_loop(void *arg) {
+    struct context *context = arg;
+
+    struct game *game = &context->game;
+
+    uint64_t previous_time = context->current_time;
+    context->current_time = SDL_GetPerformanceCounter();
+    double elapsed_time = (context->current_time - previous_time) /
+                          (double)SDL_GetPerformanceFrequency();
+    elapsed_time = fmin(elapsed_time, 1 / 60.0);
+
+    SDL_Event event = {0};
+    while (SDL_PollEvent(&event) == 1) {
+        switch (event.type) {
+        case SDL_QUIT:
+            context->quit_requested = true;
+            break;
+        case SDL_KEYDOWN:
+            switch (event.key.keysym.sym) {
+            case SDLK_F5:
+                restart_round(game);
+                break;
+            case SDLK_F11:
+                // Toggle desktop fullscreen.
+                if (SDL_GetWindowFlags(context->window) &
+                    SDL_WINDOW_FULLSCREEN_DESKTOP) {
+                    SDL_SetWindowFullscreen(context->window, 0);
+                } else {
+                    SDL_SetWindowFullscreen(context->window,
+                                            SDL_WINDOW_FULLSCREEN_DESKTOP);
+                }
+                break;
+            case SDLK_1:
+                if (CHEATS_ENABLED) {
+                    game->paddle_1.score += 1;
+                }
+                break;
+            case SDLK_2:
+                if (CHEATS_ENABLED) {
+                    game->paddle_2.score += 1;
+                }
+                break;
+            }
+            break;
+        }
+    }
+
+    check_paddle_controls(&game->paddle_1, context->joystick_1);
+    check_paddle_controls(&game->paddle_2, context->joystick_2);
+
+    update_paddle(&game->paddle_1, elapsed_time);
+    update_paddle(&game->paddle_2, elapsed_time);
+    update_ball(&game->ball, elapsed_time);
+
+    check_ball_hit_wall(game, &context->tonegen);
+    check_paddle_missed_ball(game, &context->tonegen);
+    check_paddle_hit_ball(game, &context->tonegen);
+
+    check_round_over(game);
+    check_round_restart_timeout(game);
+
+    SDL_SetRenderDrawColor(context->renderer, 0, 0, 0, 255); // black
+    SDL_RenderClear(context->renderer);
+
+    SDL_SetRenderDrawColor(context->renderer, 255, 255, 255, 255); // white
+
+    render_score(context->renderer, game->paddle_1);
+    render_score(context->renderer, game->paddle_2);
+
+    render_net(context->renderer);
+    render_paddle(context->renderer, game, game->paddle_1);
+    render_paddle(context->renderer, game, game->paddle_2);
+    render_ball(context->renderer, game->ball);
+
+    tonegen_generate(&context->tonegen);
+    tonegen_queue(&context->tonegen, context->audio_device_id);
+
+    SDL_RenderPresent(context->renderer);
 }
 
 struct paddle make_paddle(int no) {

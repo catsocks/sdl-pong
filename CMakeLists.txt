@@ -12,14 +12,31 @@ else()
 endif()
 
 set(EXTRA_LIBS "")
-
-check_library_exists(m pow "" HAVE_LIBM)
-if(HAVE_LIBM)
-    list(APPEND EXTRA_LIBS "m")
+if (NOT EMSCRIPTEN)
+	check_library_exists(m pow "" HAVE_LIBM)
+	if(HAVE_LIBM)
+	    list(APPEND EXTRA_LIBS "m")
+	endif()
 endif()
 
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIR})
+if (EMSCRIPTEN)
+	add_compile_options(-s USE_SDL=2)
+	add_link_options(-s USE_SDL=2)
+else()
+	find_package(SDL2 REQUIRED)
+	include_directories(${SDL2_INCLUDE_DIR})
+endif ()
+
+if (EMSCRIPTEN)
+	if (CMAKE_BUILD_TYPE STREQUAL Release)
+		configure_file("${CMAKE_SOURCE_DIR}/index.html"
+		   "${CMAKE_BINARY_DIR}/index.html"
+		   COPYONLY
+		)
+	else()
+		set(CMAKE_EXECUTABLE_SUFFIX ".html")
+	endif()
+endif()
 
 file(GLOB SOURCE_FILES src/*.c)
 
@@ -32,3 +49,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     C_STANDARD_REQUIRED ON
     C_EXTENSIONS OFF
 )
+
+if (EMSCRIPTEN)
+	set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "index")
+endif()
