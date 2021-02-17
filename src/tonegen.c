@@ -2,8 +2,10 @@
 
 static const int FORMAT_MAX_VALUE = INT16_MAX; // determ. by TONEGEN_FORMAT_SIZE
 
-struct tonegen make_tonegen(float volume_percentage) {
+struct tonegen make_tonegen(SDL_AudioDeviceID device_id,
+                            float volume_percentage) {
     return (struct tonegen){
+        .device_id = device_id,
         .amplitude = (volume_percentage / 100.0f) * FORMAT_MAX_VALUE,
     };
 }
@@ -24,9 +26,15 @@ static int square_wave_sample(int sample_idx, int freq, int amplitude) {
 }
 
 void tonegen_generate(struct tonegen *gen) {
+    size_t queue_size = SDL_GetQueuedAudioSize(gen->device_id);
+    int max_len =
+        TONEGEN_BUFFER_MAX_LENGTH - (queue_size / TONEGEN_FORMAT_SIZE);
+    if (max_len < 0) {
+        max_len = 0;
+    }
     int len = gen->remaining_samples;
-    if (len > TONEGEN_BUFFER_MAX_LENGTH) {
-        len = TONEGEN_BUFFER_MAX_LENGTH;
+    if (len > max_len) {
+        len = max_len;
     }
     gen->remaining_samples -= len;
     gen->buffer_size = len * TONEGEN_FORMAT_SIZE;
@@ -38,9 +46,9 @@ void tonegen_generate(struct tonegen *gen) {
     gen->sample_idx += len;
 }
 
-void tonegen_queue(struct tonegen *gen, SDL_AudioDeviceID device_id) {
+void tonegen_queue(struct tonegen *gen) {
     if (gen->buffer_size > 0) {
-        if (SDL_QueueAudio(device_id, gen->buffer, gen->buffer_size) < 0) {
+        if (SDL_QueueAudio(gen->device_id, gen->buffer, gen->buffer_size) < 0) {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                          "Couldn't queue audio: %s", SDL_GetError());
         }

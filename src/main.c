@@ -56,7 +56,6 @@ struct game {
 };
 
 struct context {
-    SDL_AudioDeviceID audio_device_id;
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Joystick *joystick_1;
@@ -151,7 +150,6 @@ int main(int argc, char *argv[]) {
     SDL_ShowWindow(window);
 
     struct context context = {
-        .audio_device_id = audio_device_id,
         .window = window,
         .renderer = renderer,
         .current_time = SDL_GetPerformanceCounter(),
@@ -162,7 +160,7 @@ int main(int argc, char *argv[]) {
                 .ball = make_ball(rand_range(1, 2), false),
                 .max_score = 11,
             },
-        .tonegen = make_tonegen(2.5f),
+        .tonegen = make_tonegen(audio_device_id, 2.5f),
     };
 
 #ifdef __EMSCRIPTEN__
@@ -271,7 +269,7 @@ void main_loop(void *arg) {
     render_ball(context->renderer, game->ball);
 
     tonegen_generate(&context->tonegen);
-    tonegen_queue(&context->tonegen, context->audio_device_id);
+    tonegen_queue(&context->tonegen);
 
     SDL_RenderPresent(context->renderer);
 }

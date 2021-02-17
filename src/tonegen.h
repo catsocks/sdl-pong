@@ -14,6 +14,7 @@ struct tonegen_tone {
 };
 
 struct tonegen {
+    SDL_AudioDeviceID device_id;
     int amplitude;
     int freq;
     uint32_t sample_idx;
@@ -22,7 +23,8 @@ struct tonegen {
     size_t buffer_size;
 };
 
-struct tonegen make_tonegen(float volume_percentage);
+struct tonegen make_tonegen(SDL_AudioDeviceID device_id,
+                            float volume_percentage);
 void set_tonegen_tone(struct tonegen *gen, struct tonegen_tone tone);
 void tonegen_generate(struct tonegen *gen);
-void tonegen_queue(struct tonegen *gen, SDL_AudioDeviceID device_id);
+void tonegen_queue(struct tonegen *gen);
