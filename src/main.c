@@ -3,6 +3,7 @@
 #include <time.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#include <emscripten/html5.h>
 #endif
 
 #include "digits.h"
@@ -211,6 +212,12 @@ void main_loop(void *arg) {
                 restart_round(game);
                 break;
             case SDLK_F11:
+#ifdef __EMSCRIPTEN__
+                // TODO: Handle leaving fullscreen here instead of leaving the
+                // responsability to the browser.
+                // TODO: Use emscripten_request_fullscreen_strategy instead.
+                emscripten_request_fullscreen("#canvas", true);
+#else
                 // Toggle desktop fullscreen.
                 if (SDL_GetWindowFlags(context->window) &
                     SDL_WINDOW_FULLSCREEN_DESKTOP) {
@@ -219,6 +226,7 @@ void main_loop(void *arg) {
                     SDL_SetWindowFullscreen(context->window,
                                             SDL_WINDOW_FULLSCREEN_DESKTOP);
                 }
+#endif
                 break;
             case SDLK_1:
                 if (CHEATS_ENABLED) {
