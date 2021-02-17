@@ -67,6 +67,8 @@ struct context {
 };
 
 void main_loop(void *arg);
+void check_joystick_added_event(struct context *context, SDL_Event event);
+void check_joystick_removed_event(struct context *context, SDL_Event event);
 struct paddle make_paddle(int no);
 struct ball make_ball(int paddle_no, bool round_over);
 void check_paddle_controls(struct paddle *paddle, SDL_Joystick *joystick);
@@ -145,19 +147,12 @@ int main(int argc, char *argv[]) {
     // For automatic resolution-indenpendent scaling.
     SDL_RenderSetLogicalSize(renderer, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    // Assumes that at most two joysticks will be detected, so they'll be at
-    // index 0 and 1.
-    SDL_Joystick *joystick_1 = SDL_JoystickOpen(0);
-    SDL_Joystick *joystick_2 = SDL_JoystickOpen(1);
-
     SDL_ShowWindow(window);
 
     struct context context = {
         .audio_device_id = audio_device_id,
         .window = window,
         .renderer = renderer,
-        .joystick_1 = joystick_1,
-        .joystick_2 = joystick_2,
         .current_time = SDL_GetPerformanceCounter(),
         .game =
             {
@@ -201,6 +196,12 @@ void main_loop(void *arg) {
     SDL_Event event = {0};
     while (SDL_PollEvent(&event) == 1) {
         switch (event.type) {
+        case SDL_JOYDEVICEADDED:
+            check_joystick_added_event(context, event);
+            break;
+        case SDL_JOYDEVICEREMOVED:
+            check_joystick_removed_event(context, event);
+            break;
         case SDL_QUIT:
             context->quit_requested = true;
             break;
@@ -265,6 +266,25 @@ void main_loop(void *arg) {
     tonegen_queue(&context->tonegen, context->audio_device_id);
 
     SDL_RenderPresent(context->renderer);
+}
+
+void check_joystick_added_event(struct context *context, SDL_Event event) {
+    if (context->joystick_1 == NULL) {
+        context->joystick_1 = SDL_JoystickOpen(event.jdevice.which);
+    } else if (context->joystick_2 == NULL) {
+        context->joystick_2 = SDL_JoystickOpen(event.jdevice.which);
+    }
+}
+
+void check_joystick_removed_event(struct context *context, SDL_Event event) {
+    if (SDL_JoystickInstanceID(context->joystick_1) == event.jdevice.which) {
+        SDL_JoystickClose(context->joystick_1);
+        context->joystick_1 = NULL;
+    } else if (SDL_JoystickInstanceID(context->joystick_2) ==
+               event.jdevice.which) {
+        SDL_JoystickClose(context->joystick_2);
+        context->joystick_2 = NULL;
+    }
 }
 
 struct paddle make_paddle(int no) {
