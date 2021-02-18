@@ -18,8 +18,8 @@
 #ifndef AUDIO_ENABLED
 #define AUDIO_ENABLED true
 #endif
-#ifndef JOYSTICKS_ENABLED
-#define JOYSTICKS_ENABLED true
+#ifndef CONTROLLER_ENABLED
+#define CONTROLLER_ENABLED true
 #endif
 
 const int WINDOW_WIDTH = 800;
@@ -58,8 +58,8 @@ struct game {
 struct context {
     SDL_Window *window;
     SDL_Renderer *renderer;
-    SDL_Joystick *joystick_1;
-    SDL_Joystick *joystick_2;
+    SDL_GameController *controller_1;
+    SDL_GameController *controller_2;
     bool quit_requested;
     struct game game;
     struct tonegen tonegen;
@@ -67,11 +67,12 @@ struct context {
 };
 
 void main_loop(void *arg);
-void check_joystick_added_event(struct context *context, SDL_Event event);
-void check_joystick_removed_event(struct context *context, SDL_Event event);
+void check_controller_added_event(struct context *context, SDL_Event event);
+void check_controller_removed_event(struct context *context, SDL_Event event);
 struct paddle make_paddle(int no);
 struct ball make_ball(int paddle_no, bool round_over);
-void check_paddle_controls(struct paddle *paddle, SDL_Joystick *joystick);
+void check_paddle_controls(struct paddle *paddle,
+                           SDL_GameController *controller);
 void update_paddle(struct paddle *paddle, double elapsed_time);
 void update_ball(struct ball *ball, double elapsed_time);
 void check_ball_hit_wall(struct game *game, struct tonegen *tonegen);
@@ -100,8 +101,8 @@ int main(int argc, char *argv[]) {
     if (AUDIO_ENABLED) {
         flags |= SDL_INIT_AUDIO;
     }
-    if (JOYSTICKS_ENABLED) {
-        flags |= SDL_INIT_JOYSTICK;
+    if (CONTROLLER_ENABLED) {
+        flags |= SDL_INIT_GAMECONTROLLER;
     }
     if (SDL_Init(flags) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
@@ -195,11 +196,11 @@ void main_loop(void *arg) {
     SDL_Event event = {0};
     while (SDL_PollEvent(&event) == 1) {
         switch (event.type) {
-        case SDL_JOYDEVICEADDED:
-            check_joystick_added_event(context, event);
+        case SDL_CONTROLLERDEVICEADDED:
+            check_controller_added_event(context, event);
             break;
-        case SDL_JOYDEVICEREMOVED:
-            check_joystick_removed_event(context, event);
+        case SDL_CONTROLLERDEVICEREMOVED:
+            check_controller_removed_event(context, event);
             break;
         case SDL_QUIT:
             context->quit_requested = true;
@@ -243,8 +244,8 @@ void main_loop(void *arg) {
         }
     }
 
-    check_paddle_controls(&game->paddle_1, context->joystick_1);
-    check_paddle_controls(&game->paddle_2, context->joystick_2);
+    check_paddle_controls(&game->paddle_1, context->controller_1);
+    check_paddle_controls(&game->paddle_2, context->controller_2);
 
     update_paddle(&game->paddle_1, elapsed_time);
     update_paddle(&game->paddle_2, elapsed_time);
@@ -276,22 +277,26 @@ void main_loop(void *arg) {
     SDL_RenderPresent(context->renderer);
 }
 
-void check_joystick_added_event(struct context *context, SDL_Event event) {
-    if (context->joystick_1 == NULL) {
-        context->joystick_1 = SDL_JoystickOpen(event.jdevice.which);
-    } else if (context->joystick_2 == NULL) {
-        context->joystick_2 = SDL_JoystickOpen(event.jdevice.which);
+void check_controller_added_event(struct context *context, SDL_Event event) {
+    if (context->controller_1 == NULL) {
+        context->controller_1 = SDL_GameControllerOpen(event.cdevice.which);
+    } else if (context->controller_2 == NULL) {
+        context->controller_2 = SDL_GameControllerOpen(event.cdevice.which);
     }
 }
 
-void check_joystick_removed_event(struct context *context, SDL_Event event) {
-    if (SDL_JoystickInstanceID(context->joystick_1) == event.jdevice.which) {
-        SDL_JoystickClose(context->joystick_1);
-        context->joystick_1 = NULL;
-    } else if (SDL_JoystickInstanceID(context->joystick_2) ==
-               event.jdevice.which) {
-        SDL_JoystickClose(context->joystick_2);
-        context->joystick_2 = NULL;
+void check_controller_removed_event(struct context *context, SDL_Event event) {
+    SDL_Joystick *joystick =
+        SDL_GameControllerGetJoystick(context->controller_1);
+    if (SDL_JoystickInstanceID(joystick) == event.cdevice.which) {
+        SDL_GameControllerClose(context->controller_1);
+        context->controller_1 = NULL;
+        return;
+    }
+    joystick = SDL_GameControllerGetJoystick(context->controller_2);
+    if (SDL_JoystickInstanceID(joystick) == event.cdevice.which) {
+        SDL_GameControllerClose(context->controller_2);
+        context->controller_2 = NULL;
     }
 }
 
@@ -333,14 +338,19 @@ struct ball make_ball(int paddle_no, bool round_over) {
     return ball;
 }
 
-// Set the vertical velocity of a paddle based on the vertical axis of the
-// joystick, or whether the keyboard keys are pressed, both can be used
-// simultaneously and the keyboard is prioritized.
-void check_paddle_controls(struct paddle *paddle, SDL_Joystick *joystick) {
-    // 1 is commonly the y-axis.
-    int16_t axis = SDL_JoystickGetAxis(joystick, 1);
-    float max_speed_joystick = 700.0f;
-    paddle->velocity = max_speed_joystick * (axis / (float)INT16_MAX);
+void check_paddle_controls(struct paddle *paddle,
+                           SDL_GameController *controller) {
+    paddle->velocity = 0.0f;
+
+    int max_speed = 500;
+    if (SDL_GameControllerGetButton(
+            controller, SDL_CONTROLLER_BUTTON_DPAD_UP) == SDL_PRESSED) {
+        paddle->velocity = -max_speed;
+    } else if (SDL_GameControllerGetButton(controller,
+                                           SDL_CONTROLLER_BUTTON_DPAD_DOWN) ==
+               SDL_PRESSED) {
+        paddle->velocity = max_speed;
+    }
 
     int up_key = SDL_SCANCODE_W;
     int down_key = SDL_SCANCODE_S;
@@ -349,11 +359,10 @@ void check_paddle_controls(struct paddle *paddle, SDL_Joystick *joystick) {
         down_key = SDL_SCANCODE_DOWN;
     }
     const uint8_t *state = SDL_GetKeyboardState(NULL);
-    int speed_keyboard = 500;
-    if (state[up_key] == 1) {
-        paddle->velocity = -speed_keyboard;
-    } else if (state[down_key] == 1) {
-        paddle->velocity = speed_keyboard;
+    if (state[up_key] == SDL_PRESSED) {
+        paddle->velocity = -max_speed;
+    } else if (state[down_key] == SDL_PRESSED) {
+        paddle->velocity = max_speed;
     }
 }
 

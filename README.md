@@ -5,7 +5,7 @@ game from 1972 with sound in C using only the [SDL](https://www.libsdl.org/)
 cross-platform multimedia library.
 
 The window is resizable, desktop fullscreen can be toggled with the keyboard and
-up to 2 joysticks (incl. regular controllers) are supported.
+up to 2 controllers are supported.
 
 You can watch a video of 1972 Pong on Youtube
 [here](https://www.youtube.com/watch?v=fiShX2pTz9A).
@@ -16,13 +16,16 @@ You can watch a video of 1972 Pong on Youtube
 
 ## Controls
 
-The vertical axis of up to two joysticks are used to control the movement of the
-paddles, and they can be used simultaneously with the keyboard controls below.
+### Keyboard
 
 * <kbd>W</kbd> and <kbd>S</kbd> moves the paddle on the left up and down
 * <kbd>Up</kbd> and <kbd>Down</kbd> moves the paddle on the right up and down
-* <kbd>F5</kbd> restarts the round
+* <kbd>Shift</kbd> + <kbd>R</kbd> restarts the round
 * <kbd>F11</kbd> toggles desktop fullscreen mode
+
+### Controller
+
+* _D-pad up_ and _D-pad down_ moves the paddle on the left up and down
 
 ## Build
 
