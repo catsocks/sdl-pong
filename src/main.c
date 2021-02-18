@@ -68,12 +68,11 @@ struct context {
 };
 
 void main_loop(void *arg);
-void check_controller_added_event(struct context *context, SDL_Event event);
-void check_controller_removed_event(struct context *context, SDL_Event event);
+void check_controller_added_event(struct context *ctx, SDL_Event event);
+void check_controller_removed_event(struct context *ctx, SDL_Event event);
 struct paddle make_paddle(int no);
 struct ball make_ball(int paddle_no, bool round_over);
-void check_paddle_controls(struct paddle *paddle,
-                           SDL_GameController *controller);
+void check_paddle_controls(struct paddle *paddle, SDL_GameController *ctrl);
 void ghost_paddle_control(struct paddle *paddle, struct ball ball);
 void update_paddle(struct paddle *paddle, double elapsed_time);
 void update_ball(struct ball *ball, double elapsed_time);
@@ -152,7 +151,7 @@ int main(int argc, char *argv[]) {
 
     SDL_ShowWindow(window);
 
-    struct context context = {
+    struct context ctx = {
         .window = window,
         .renderer = renderer,
         .current_time = SDL_GetPerformanceCounter(),
@@ -167,10 +166,10 @@ int main(int argc, char *argv[]) {
     };
 
 #ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop_arg(main_loop, &context, 0, 1);
+    emscripten_set_main_loop_arg(main_loop, &ctx, 0, 1);
 #else
-    while (!context.quit_requested) {
-        main_loop(&context);
+    while (!ctx.quit_requested) {
+        main_loop(&ctx);
     }
 #endif
 
@@ -185,13 +184,13 @@ int main(int argc, char *argv[]) {
 }
 
 void main_loop(void *arg) {
-    struct context *context = arg;
+    struct context *ctx = arg;
 
-    struct game *game = &context->game;
+    struct game *game = &ctx->game;
 
-    uint64_t previous_time = context->current_time;
-    context->current_time = SDL_GetPerformanceCounter();
-    double elapsed_time = (context->current_time - previous_time) /
+    uint64_t previous_time = ctx->current_time;
+    ctx->current_time = SDL_GetPerformanceCounter();
+    double elapsed_time = (ctx->current_time - previous_time) /
                           (double)SDL_GetPerformanceFrequency();
     elapsed_time = fmin(elapsed_time, 1 / 60.0);
 
@@ -199,13 +198,13 @@ void main_loop(void *arg) {
     while (SDL_PollEvent(&event) == 1) {
         switch (event.type) {
         case SDL_CONTROLLERDEVICEADDED:
-            check_controller_added_event(context, event);
+            check_controller_added_event(ctx, event);
             break;
         case SDL_CONTROLLERDEVICEREMOVED:
-            check_controller_removed_event(context, event);
+            check_controller_removed_event(ctx, event);
             break;
         case SDL_QUIT:
-            context->quit_requested = true;
+            ctx->quit_requested = true;
             break;
         case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
@@ -222,11 +221,11 @@ void main_loop(void *arg) {
                 emscripten_request_fullscreen("#canvas", true);
 #else
                 // Toggle desktop fullscreen.
-                if (SDL_GetWindowFlags(context->window) &
+                if (SDL_GetWindowFlags(ctx->window) &
                     SDL_WINDOW_FULLSCREEN_DESKTOP) {
-                    SDL_SetWindowFullscreen(context->window, 0);
+                    SDL_SetWindowFullscreen(ctx->window, 0);
                 } else {
-                    SDL_SetWindowFullscreen(context->window,
+                    SDL_SetWindowFullscreen(ctx->window,
                                             SDL_WINDOW_FULLSCREEN_DESKTOP);
                 }
 #endif
@@ -246,8 +245,8 @@ void main_loop(void *arg) {
         }
     }
 
-    check_paddle_controls(&game->paddle_1, context->controller_1);
-    check_paddle_controls(&game->paddle_2, context->controller_2);
+    check_paddle_controls(&game->paddle_1, ctx->controller_1);
+    check_paddle_controls(&game->paddle_2, ctx->controller_2);
 
     ghost_paddle_control(&game->paddle_1, game->ball);
     ghost_paddle_control(&game->paddle_2, game->ball);
@@ -256,52 +255,51 @@ void main_loop(void *arg) {
     update_paddle(&game->paddle_2, elapsed_time);
     update_ball(&game->ball, elapsed_time);
 
-    check_ball_hit_wall(game, &context->tonegen);
-    check_paddle_missed_ball(game, &context->tonegen);
-    check_paddle_hit_ball(game, &context->tonegen);
+    check_ball_hit_wall(game, &ctx->tonegen);
+    check_paddle_missed_ball(game, &ctx->tonegen);
+    check_paddle_hit_ball(game, &ctx->tonegen);
 
     check_round_over(game);
     check_round_restart_timeout(game);
 
-    SDL_SetRenderDrawColor(context->renderer, 0, 0, 0, 255); // black
-    SDL_RenderClear(context->renderer);
+    SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255); // black
+    SDL_RenderClear(ctx->renderer);
 
-    SDL_SetRenderDrawColor(context->renderer, 255, 255, 255, 255); // white
+    SDL_SetRenderDrawColor(ctx->renderer, 255, 255, 255, 255); // white
 
-    render_score(context->renderer, game->paddle_1);
-    render_score(context->renderer, game->paddle_2);
+    render_score(ctx->renderer, game->paddle_1);
+    render_score(ctx->renderer, game->paddle_2);
 
-    render_net(context->renderer);
-    render_paddle(context->renderer, game, game->paddle_1);
-    render_paddle(context->renderer, game, game->paddle_2);
-    render_ball(context->renderer, game->ball);
+    render_net(ctx->renderer);
+    render_paddle(ctx->renderer, game, game->paddle_1);
+    render_paddle(ctx->renderer, game, game->paddle_2);
+    render_ball(ctx->renderer, game->ball);
 
-    tonegen_generate(&context->tonegen);
-    tonegen_queue(&context->tonegen);
+    tonegen_generate(&ctx->tonegen);
+    tonegen_queue(&ctx->tonegen);
 
-    SDL_RenderPresent(context->renderer);
+    SDL_RenderPresent(ctx->renderer);
 }
 
-void check_controller_added_event(struct context *context, SDL_Event event) {
-    if (context->controller_1 == NULL) {
-        context->controller_1 = SDL_GameControllerOpen(event.cdevice.which);
-    } else if (context->controller_2 == NULL) {
-        context->controller_2 = SDL_GameControllerOpen(event.cdevice.which);
+void check_controller_added_event(struct context *ctx, SDL_Event event) {
+    if (ctx->controller_1 == NULL) {
+        ctx->controller_1 = SDL_GameControllerOpen(event.cdevice.which);
+    } else if (ctx->controller_2 == NULL) {
+        ctx->controller_2 = SDL_GameControllerOpen(event.cdevice.which);
     }
 }
 
-void check_controller_removed_event(struct context *context, SDL_Event event) {
-    SDL_Joystick *joystick =
-        SDL_GameControllerGetJoystick(context->controller_1);
+void check_controller_removed_event(struct context *ctx, SDL_Event event) {
+    SDL_Joystick *joystick = SDL_GameControllerGetJoystick(ctx->controller_1);
     if (SDL_JoystickInstanceID(joystick) == event.cdevice.which) {
-        SDL_GameControllerClose(context->controller_1);
-        context->controller_1 = NULL;
+        SDL_GameControllerClose(ctx->controller_1);
+        ctx->controller_1 = NULL;
         return;
     }
-    joystick = SDL_GameControllerGetJoystick(context->controller_2);
+    joystick = SDL_GameControllerGetJoystick(ctx->controller_2);
     if (SDL_JoystickInstanceID(joystick) == event.cdevice.which) {
-        SDL_GameControllerClose(context->controller_2);
-        context->controller_2 = NULL;
+        SDL_GameControllerClose(ctx->controller_2);
+        ctx->controller_2 = NULL;
     }
 }
 
@@ -343,20 +341,18 @@ struct ball make_ball(int paddle_no, bool round_over) {
     return ball;
 }
 
-void check_paddle_controls(struct paddle *paddle,
-                           SDL_GameController *controller) {
+void check_paddle_controls(struct paddle *paddle, SDL_GameController *ctrl) {
     if (paddle->player_controlled) {
         paddle->velocity = 0.0f;
     }
 
     int speed = 500;
-    if (SDL_GameControllerGetButton(
-            controller, SDL_CONTROLLER_BUTTON_DPAD_UP) == SDL_PRESSED) {
+    if (SDL_GameControllerGetButton(ctrl, SDL_CONTROLLER_BUTTON_DPAD_UP) ==
+        SDL_PRESSED) {
         paddle->velocity = -speed;
         paddle->player_controlled = true;
-    } else if (SDL_GameControllerGetButton(controller,
-                                           SDL_CONTROLLER_BUTTON_DPAD_DOWN) ==
-               SDL_PRESSED) {
+    } else if (SDL_GameControllerGetButton(
+                   ctrl, SDL_CONTROLLER_BUTTON_DPAD_DOWN) == SDL_PRESSED) {
         paddle->velocity = speed;
         paddle->player_controlled = true;
     }
