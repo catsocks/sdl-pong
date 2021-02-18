@@ -208,27 +208,29 @@ void main_loop(void *arg) {
             break;
         case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
+            case SDLK_ESCAPE:
+                // TODO: Toggle fullscreen with SDK_F11 instead of using
+                // separate keys for turning it on and off.
+                // TODO: Log errors.
+#ifdef __EMSCRIPTEN__
+                emscripten_exit_fullscreen();
+#else
+                SDL_SetWindowFullscreen(ctx->window, 0);
+#endif
+                break;
+            case SDLK_F11:
+#ifdef __EMSCRIPTEN__
+                // TODO: Use emscripten_request_fullscreen_strategy instead.
+                emscripten_request_fullscreen("#canvas", true);
+#else
+                SDL_SetWindowFullscreen(ctx->window,
+                                        SDL_WINDOW_FULLSCREEN_DESKTOP);
+#endif
+                break;
             case SDLK_r:
                 if (SDL_GetModState() & KMOD_SHIFT) {
                     restart_round(game);
                 }
-                break;
-            case SDLK_F11:
-#ifdef __EMSCRIPTEN__
-                // TODO: Handle leaving fullscreen here instead of leaving the
-                // responsability to the browser.
-                // TODO: Use emscripten_request_fullscreen_strategy instead.
-                emscripten_request_fullscreen("#canvas", true);
-#else
-                // Toggle desktop fullscreen.
-                if (SDL_GetWindowFlags(ctx->window) &
-                    SDL_WINDOW_FULLSCREEN_DESKTOP) {
-                    SDL_SetWindowFullscreen(ctx->window, 0);
-                } else {
-                    SDL_SetWindowFullscreen(ctx->window,
-                                            SDL_WINDOW_FULLSCREEN_DESKTOP);
-                }
-#endif
                 break;
             case SDLK_1:
                 if (CHEATS_ENABLED) {
