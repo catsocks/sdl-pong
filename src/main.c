@@ -344,19 +344,14 @@ struct ball make_ball(int paddle_no, bool round_over) {
 }
 
 void check_paddle_controls(struct paddle *paddle, SDL_GameController *ctrl) {
-    if (paddle->player_controlled) {
-        paddle->velocity = 0.0f;
-    }
-
     int speed = 500;
+    int velocity = 0;
     if (SDL_GameControllerGetButton(ctrl, SDL_CONTROLLER_BUTTON_DPAD_UP) ==
         SDL_PRESSED) {
-        paddle->velocity = -speed;
-        paddle->player_controlled = true;
+        velocity = -speed;
     } else if (SDL_GameControllerGetButton(
                    ctrl, SDL_CONTROLLER_BUTTON_DPAD_DOWN) == SDL_PRESSED) {
-        paddle->velocity = speed;
-        paddle->player_controlled = true;
+        velocity = speed;
     }
 
     int up_key = SDL_SCANCODE_W;
@@ -367,10 +362,15 @@ void check_paddle_controls(struct paddle *paddle, SDL_GameController *ctrl) {
     }
     const uint8_t *state = SDL_GetKeyboardState(NULL);
     if (state[up_key] == SDL_PRESSED) {
-        paddle->velocity = -speed;
-        paddle->player_controlled = true;
+        velocity = -speed;
     } else if (state[down_key] == SDL_PRESSED) {
-        paddle->velocity = speed;
+        velocity = speed;
+    }
+
+    if (paddle->player_controlled) {
+        paddle->velocity = velocity;
+    } else if (velocity != 0) {
+        paddle->velocity = velocity;
         paddle->player_controlled = true;
     }
 }
