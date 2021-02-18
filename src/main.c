@@ -37,6 +37,7 @@ struct paddle {
     SDL_FRect rect;
     float velocity; // vertical
     int score;
+    bool player_controlled;
 };
 
 struct ball {
@@ -73,6 +74,7 @@ struct paddle make_paddle(int no);
 struct ball make_ball(int paddle_no, bool round_over);
 void check_paddle_controls(struct paddle *paddle,
                            SDL_GameController *controller);
+void ghost_paddle_control(struct paddle *paddle, struct ball ball);
 void update_paddle(struct paddle *paddle, double elapsed_time);
 void update_ball(struct ball *ball, double elapsed_time);
 void check_ball_hit_wall(struct game *game, struct tonegen *tonegen);
@@ -247,6 +249,9 @@ void main_loop(void *arg) {
     check_paddle_controls(&game->paddle_1, context->controller_1);
     check_paddle_controls(&game->paddle_2, context->controller_2);
 
+    ghost_paddle_control(&game->paddle_1, game->ball);
+    ghost_paddle_control(&game->paddle_2, game->ball);
+
     update_paddle(&game->paddle_1, elapsed_time);
     update_paddle(&game->paddle_2, elapsed_time);
     update_ball(&game->ball, elapsed_time);
@@ -340,16 +345,20 @@ struct ball make_ball(int paddle_no, bool round_over) {
 
 void check_paddle_controls(struct paddle *paddle,
                            SDL_GameController *controller) {
-    paddle->velocity = 0.0f;
+    if (paddle->player_controlled) {
+        paddle->velocity = 0.0f;
+    }
 
-    int max_speed = 500;
+    int speed = 500;
     if (SDL_GameControllerGetButton(
             controller, SDL_CONTROLLER_BUTTON_DPAD_UP) == SDL_PRESSED) {
-        paddle->velocity = -max_speed;
+        paddle->velocity = -speed;
+        paddle->player_controlled = true;
     } else if (SDL_GameControllerGetButton(controller,
                                            SDL_CONTROLLER_BUTTON_DPAD_DOWN) ==
                SDL_PRESSED) {
-        paddle->velocity = max_speed;
+        paddle->velocity = speed;
+        paddle->player_controlled = true;
     }
 
     int up_key = SDL_SCANCODE_W;
@@ -360,9 +369,32 @@ void check_paddle_controls(struct paddle *paddle,
     }
     const uint8_t *state = SDL_GetKeyboardState(NULL);
     if (state[up_key] == SDL_PRESSED) {
-        paddle->velocity = -max_speed;
+        paddle->velocity = -speed;
+        paddle->player_controlled = true;
     } else if (state[down_key] == SDL_PRESSED) {
-        paddle->velocity = max_speed;
+        paddle->velocity = speed;
+        paddle->player_controlled = true;
+    }
+}
+
+void ghost_paddle_control(struct paddle *paddle, struct ball ball) {
+    if (paddle->player_controlled) {
+        return;
+    }
+    if (!ball.served) {
+        paddle->velocity = 0;
+        return;
+    }
+
+    int speed = 500;
+    if (paddle->rect.y + (paddle->rect.h / 2) >
+        ball.rect.y + (ball.rect.h / 2)) {
+        paddle->velocity = -speed;
+    } else if (ball.rect.y + (ball.rect.h / 2) >
+               paddle->rect.y + (paddle->rect.h / 2)) {
+        paddle->velocity = speed;
+    } else {
+        paddle->velocity = 0;
     }
 }
 
@@ -495,6 +527,8 @@ void check_round_over(struct game *game) {
 void restart_round(struct game *game) {
     game->paddle_1.score = 0;
     game->paddle_2.score = 0;
+    game->paddle_1.player_controlled = false;
+    game->paddle_2.player_controlled = false;
     game->ball = make_ball(rand_range(1, 2), false);
     game->round_over = false;
 }
