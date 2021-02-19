@@ -65,11 +65,13 @@ struct context {
     struct game game;
     struct tonegen tonegen;
     uint64_t current_time;
+    uint32_t last_finger_down_event;
 };
 
 void main_loop(void *arg);
 void check_controller_added_event(struct context *ctx, SDL_Event event);
 void check_controller_removed_event(struct context *ctx, SDL_Event event);
+void toggle_fullscreen(struct context *ctx);
 struct paddle make_paddle(int no);
 struct ball make_ball(int paddle_no, bool round_over);
 void check_paddle_controls(struct paddle *paddle, SDL_GameController *ctrl);
@@ -208,24 +210,8 @@ void main_loop(void *arg) {
             break;
         case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
-            case SDLK_ESCAPE:
-                // TODO: Toggle fullscreen with SDK_F11 instead of using
-                // separate keys for turning it on and off.
-                // TODO: Log errors.
-#ifdef __EMSCRIPTEN__
-                emscripten_exit_fullscreen();
-#else
-                SDL_SetWindowFullscreen(ctx->window, 0);
-#endif
-                break;
             case SDLK_F11:
-#ifdef __EMSCRIPTEN__
-                // TODO: Use emscripten_request_fullscreen_strategy instead.
-                emscripten_request_fullscreen("#canvas", true);
-#else
-                SDL_SetWindowFullscreen(ctx->window,
-                                        SDL_WINDOW_FULLSCREEN_DESKTOP);
-#endif
+                toggle_fullscreen(ctx);
                 break;
             case SDLK_r:
                 if (SDL_GetModState() & KMOD_SHIFT) {
@@ -243,6 +229,12 @@ void main_loop(void *arg) {
                 }
                 break;
             }
+            break;
+        case SDL_FINGERDOWN:
+            if (event.tfinger.timestamp - ctx->last_finger_down_event < 500) {
+                toggle_fullscreen(ctx);
+            }
+            ctx->last_finger_down_event = event.tfinger.timestamp;
             break;
         }
     }
@@ -303,6 +295,40 @@ void check_controller_removed_event(struct context *ctx, SDL_Event event) {
         SDL_GameControllerClose(ctx->controller_2);
         ctx->controller_2 = NULL;
     }
+}
+
+void toggle_fullscreen(struct context *ctx) {
+#ifdef __EMSCRIPTEN__
+    // NOTE: SDL_SetWindowFullscreen has Emscripten support but it messes up the
+    // aspect ratio of the game.
+    (void)ctx; // suppress unused variable warning
+
+    EmscriptenFullscreenChangeEvent event = {0};
+    emscripten_get_fullscreen_status(&event);
+
+    if (event.isFullscreen) {
+        emscripten_exit_fullscreen();
+        return;
+    }
+
+    // TODO: Figure out why using emscripten_request_fullscreen_strategy messes
+    // the aspect ratio of the game up when it exits fullscreen.
+    // EmscriptenFullscreenStrategy strategy = {
+    //     .scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_DEFAULT,
+    //     .canvasResolutionScaleMode =
+    //     EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF, .filteringMode =
+    //     EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT,
+    // };
+    // emscripten_request_fullscreen_strategy("#canvas", true, &strategy);
+
+    emscripten_request_fullscreen("#canvas", true);
+#else
+    if (SDL_GetWindowFlags(ctx->window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
+        SDL_SetWindowFullscreen(ctx->window, 0);
+    } else {
+        SDL_SetWindowFullscreen(ctx->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+#endif
 }
 
 struct paddle make_paddle(int no) {

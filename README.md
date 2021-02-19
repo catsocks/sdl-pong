@@ -21,12 +21,15 @@ You can watch a video of 1972 Pong on Youtube
 * <kbd>W</kbd> and <kbd>S</kbd> moves the paddle on the left up and down
 * <kbd>Up</kbd> and <kbd>Down</kbd> moves the paddle on the right up and down
 * <kbd>Shift</kbd> + <kbd>R</kbd> restarts the round
-* <kbd>F11</kbd> turns desktop fullscreen on
-* <kbd>Esc</kbd> turns desktop fullscreen off
+* <kbd>F11</kbd> toggles desktop fullscreen
 
 ### Controller
 
 * _D-pad up_ and _D-pad down_ moves the paddle on the left up and down
+
+### Touch
+
+* Double tap toggles desktop fullscreen
 
 ## Build
 
