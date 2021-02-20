@@ -299,29 +299,25 @@ void check_controller_removed_event(struct context *ctx, SDL_Event event) {
 
 void toggle_fullscreen(struct context *ctx) {
 #ifdef __EMSCRIPTEN__
-    // NOTE: SDL_SetWindowFullscreen has Emscripten support but it messes up the
-    // aspect ratio of the game.
+    // SDL_SetWindowFullscreen has Emscripten support but it seems to break the
+    // effects of SDL_RenderSetLogicalSize, making the canvas element be
+    // displayed in fullscreen also appears to break it, so the body element is
+    // made fullscreen instead.
     (void)ctx; // suppress unused variable warning
 
     EmscriptenFullscreenChangeEvent event = {0};
     emscripten_get_fullscreen_status(&event);
-
     if (event.isFullscreen) {
         emscripten_exit_fullscreen();
         return;
     }
 
-    // TODO: Figure out why using emscripten_request_fullscreen_strategy messes
-    // the aspect ratio of the game up when it exits fullscreen.
-    // EmscriptenFullscreenStrategy strategy = {
-    //     .scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_DEFAULT,
-    //     .canvasResolutionScaleMode =
-    //     EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF, .filteringMode =
-    //     EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT,
-    // };
-    // emscripten_request_fullscreen_strategy("#canvas", true, &strategy);
-
-    emscripten_request_fullscreen("#canvas", true);
+    EmscriptenFullscreenStrategy strategy = {
+        .scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_DEFAULT,
+        .canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF,
+        .filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT,
+    };
+    emscripten_request_fullscreen_strategy("#body", true, &strategy);
 #else
     if (SDL_GetWindowFlags(ctx->window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
         SDL_SetWindowFullscreen(ctx->window, 0);
