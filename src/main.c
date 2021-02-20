@@ -234,7 +234,9 @@ void main_loop(void *arg) {
             }
             break;
         case SDL_FINGERDOWN:
-            if (event.tfinger.timestamp - ctx->last_finger_down_event < 500) {
+            int max_delay = 500; // in ms
+            if (event.tfinger.timestamp - ctx->last_finger_down_event <
+                max_delay) {
                 toggle_fullscreen(ctx);
             }
             ctx->last_finger_down_event = event.tfinger.timestamp;
