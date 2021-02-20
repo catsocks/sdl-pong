@@ -5,6 +5,8 @@ include(CheckLibraryExists)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
+# set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if (MSVC)
     add_compile_options(/W4)
 else()
@@ -53,3 +55,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 if (EMSCRIPTEN)
 	set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "index")
 endif()
+
+# target_compile_definitions(${PROJECT_NAME}
+# 	PRIVATE
+# 	# CHEATS_ENABLED=1
+# 	# AUDIO_ENABLED=0
+# 	# CONTROLLER_ENABLED=0
+# )
