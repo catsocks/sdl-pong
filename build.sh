@@ -1,6 +1,7 @@
 #!/bin/bash
-mkdir -p build
-cc -o build/tennis \
+dest=build
+mkdir -p $dest
+cc -o $dest/tennis \
 	src/*.c \
 	-std=c99 \
 	-Wall -Wextra -pedantic \
