@@ -71,6 +71,8 @@ struct context {
 void main_loop(void *arg);
 void check_controller_added_event(struct context *ctx, SDL_Event event);
 void check_controller_removed_event(struct context *ctx, SDL_Event event);
+void check_finger_down_event(struct context *ctx, SDL_Event event);
+void check_keydown_event(struct context *ctx, SDL_Event event);
 void toggle_fullscreen(struct context *ctx);
 struct paddle make_paddle(int no);
 struct ball make_ball(int paddle_no, bool round_over);
@@ -209,37 +211,10 @@ void main_loop(void *arg) {
             ctx->quit_requested = true;
             break;
         case SDL_KEYDOWN:
-            switch (event.key.keysym.sym) {
-            case SDLK_F11:
-                toggle_fullscreen(ctx);
-                break;
-            case SDLK_r:
-                if (SDL_GetModState() & KMOD_SHIFT) {
-                    restart_round(game);
-                }
-                break;
-            case SDLK_m:
-                ctx->tonegen.mute = !ctx->tonegen.mute;
-                break;
-            case SDLK_1:
-                if (CHEATS_ENABLED) {
-                    game->paddle_1.score += 1;
-                }
-                break;
-            case SDLK_2:
-                if (CHEATS_ENABLED) {
-                    game->paddle_2.score += 1;
-                }
-                break;
-            }
+            check_keydown_event(ctx, event);
             break;
         case SDL_FINGERDOWN:
-            int max_delay = 500; // in ms
-            if (event.tfinger.timestamp - ctx->last_finger_down_event <
-                max_delay) {
-                toggle_fullscreen(ctx);
-            }
-            ctx->last_finger_down_event = event.tfinger.timestamp;
+            check_finger_down_event(ctx, event);
             break;
         }
     }
@@ -330,6 +305,40 @@ void toggle_fullscreen(struct context *ctx) {
         SDL_SetWindowFullscreen(ctx->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
 #endif
+}
+
+void check_finger_down_event(struct context *ctx, SDL_Event event) {
+    unsigned max_delay = 500; // in ms
+    if (event.tfinger.timestamp - ctx->last_finger_down_event < max_delay) {
+        toggle_fullscreen(ctx);
+    }
+    ctx->last_finger_down_event = event.tfinger.timestamp;
+}
+
+void check_keydown_event(struct context *ctx, SDL_Event event) {
+    switch (event.key.keysym.sym) {
+    case SDLK_F11:
+        toggle_fullscreen(ctx);
+        break;
+    case SDLK_r:
+        if (SDL_GetModState() & KMOD_SHIFT) {
+            restart_round(&ctx->game);
+        }
+        break;
+    case SDLK_m:
+        ctx->tonegen.mute = !ctx->tonegen.mute;
+        break;
+    case SDLK_1:
+        if (CHEATS_ENABLED) {
+            ctx->game.paddle_1.score += 1;
+        }
+        break;
+    case SDLK_2:
+        if (CHEATS_ENABLED) {
+            ctx->game.paddle_2.score += 1;
+        }
+        break;
+    }
 }
 
 struct paddle make_paddle(int no) {
