@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL.h>
+#include <stdbool.h>
 
 #include "math.h"
 
@@ -21,6 +22,7 @@ struct tonegen {
     int remaining_samples; // samples yet to be generated
     int16_t buffer[TONEGEN_BUFFER_MAX_LENGTH];
     size_t buffer_size;
+    bool mute;
 };
 
 struct tonegen make_tonegen(SDL_AudioDeviceID device_id,

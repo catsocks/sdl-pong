@@ -21,6 +21,7 @@ You can watch a video of 1972 Pong on Youtube
 * <kbd>W</kbd> and <kbd>S</kbd> moves the paddle on the left up and down
 * <kbd>Up</kbd> and <kbd>Down</kbd> moves the paddle on the right up and down
 * <kbd>Shift</kbd> + <kbd>R</kbd> restarts the round
+* <kbd>m</kbd> toggles audio
 * <kbd>F11</kbd> toggles desktop fullscreen
 
 ### Controller

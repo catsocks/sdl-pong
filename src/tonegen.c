@@ -39,9 +39,14 @@ void tonegen_generate(struct tonegen *gen) {
     gen->remaining_samples -= len;
     gen->buffer_size = len * TONEGEN_FORMAT_SIZE;
 
+    int amplitude = gen->amplitude;
+    if (gen->mute) {
+        amplitude = 0;
+    }
+
     for (int i = 0; i < len; i++) {
         gen->buffer[i] =
-            square_wave_sample(gen->sample_idx + i, gen->freq, gen->amplitude);
+            square_wave_sample(gen->sample_idx + i, gen->freq, amplitude);
     }
     gen->sample_idx += len;
 }

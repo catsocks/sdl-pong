@@ -218,6 +218,9 @@ void main_loop(void *arg) {
                     restart_round(game);
                 }
                 break;
+            case SDLK_m:
+                ctx->tonegen.mute = !ctx->tonegen.mute;
+                break;
             case SDLK_1:
                 if (CHEATS_ENABLED) {
                     game->paddle_1.score += 1;
