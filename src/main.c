@@ -16,10 +16,6 @@ const int WINDOW_HEIGHT = 600;
 const int NET_WIDTH = 5;
 const int NET_HEIGHT = 15;
 
-const struct tonegen_tone SCORE_TONE = {240, 510};
-const struct tonegen_tone PADDLE_HIT_TONE = {480, 35};
-const struct tonegen_tone WALL_HIT_TONE = {240, 20};
-
 struct ghost {
     int idle_offset;
     float speed;
@@ -42,6 +38,12 @@ struct ball {
     uint32_t serve_timeout;
 };
 
+struct events {
+    bool paddle_missed_ball;
+    bool ball_hit_paddle;
+    bool ball_hit_wall;
+};
+
 struct game {
     bool cheats_enabled;
     struct paddle paddle_1;
@@ -54,6 +56,7 @@ struct game {
     uint32_t round_restart_timeout;
     uint32_t last_player_1_input;
     uint32_t last_player_2_input;
+    struct events events;
 };
 
 struct context {
@@ -88,9 +91,10 @@ void randomize_ghost_speed(struct ghost *ghost);
 void randomize_ghost_bias(struct ghost *ghost);
 void randomize_ghost_idle_offset(struct ghost *ghost);
 void update_ball(struct ball *ball, double dt);
-void check_ball_hit_wall(struct game *game, struct tonegen *tonegen);
-void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen);
-void check_paddle_missed_ball(struct game *game, struct tonegen *tonegen);
+void check_ball_hit_wall(struct game *game);
+void check_paddle_hit_ball(struct game *game);
+void check_paddle_missed_ball(struct game *game);
+void check_events(struct game *game, struct tonegen *tonegen);
 void check_round_over(struct game *game);
 void restart_round(struct game *game);
 void check_round_restart_timeout(struct game *game);
@@ -236,9 +240,11 @@ void main_loop(void *arg) {
     update_paddle(&game->paddle_2, delta_time);
     update_ball(&game->ball, delta_time);
 
-    check_ball_hit_wall(game, &ctx->tonegen);
-    check_paddle_missed_ball(game, &ctx->tonegen);
-    check_paddle_hit_ball(game, &ctx->tonegen);
+    check_ball_hit_wall(game);
+    check_paddle_missed_ball(game);
+    check_paddle_hit_ball(game);
+
+    check_events(&ctx->game, &ctx->tonegen);
 
     check_round_over(game);
     check_round_restart_timeout(game);
@@ -501,14 +507,14 @@ void update_ball(struct ball *ball, double dt) {
     }
 }
 
-void check_ball_hit_wall(struct game *game, struct tonegen *tonegen) {
+void check_ball_hit_wall(struct game *game) {
     struct ball *ball = &game->ball;
 
     // The ball will always bounce off vertical walls.
     if (ball->rect.y < 0.0f || ball->rect.y + ball->rect.h > WINDOW_HEIGHT) {
         ball->velocity.y *= -1.0f;
         if (!game->round_over) {
-            set_tonegen_tone(tonegen, WALL_HIT_TONE);
+            game->events.ball_hit_wall = true;
         }
 
         ball->rect.y = clamp(ball->rect.y, 0.0f, WINDOW_HEIGHT - ball->rect.h);
@@ -567,7 +573,7 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
     ball->velocity.y = -sinf(bounce_angle) * speed;
 }
 
-void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen) {
+void check_paddle_hit_ball(struct game *game) {
     if (!game->round_over) {
         if (paddle_intersects_ball(game->paddle_1, game->ball)) {
             bounce_ball_off_paddle(&game->ball, &game->paddle_1);
@@ -578,11 +584,11 @@ void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen) {
         } else {
             return;
         }
-        set_tonegen_tone(tonegen, PADDLE_HIT_TONE);
+        game->events.ball_hit_paddle = true;
     }
 }
 
-void check_paddle_missed_ball(struct game *game, struct tonegen *tonegen) {
+void check_paddle_missed_ball(struct game *game) {
     if (game->ball.rect.x + game->ball.rect.w < 0) {
         // Paddle 1 missed the ball.
         game->paddle_2.score++;
@@ -593,7 +599,7 @@ void check_paddle_missed_ball(struct game *game, struct tonegen *tonegen) {
         game->ball = make_ball(1, false);
         randomize_ghost_idle_offset(&game->ghost_1);
         randomize_ghost_idle_offset(&game->ghost_2);
-        set_tonegen_tone(tonegen, SCORE_TONE);
+        game->events.paddle_missed_ball = true;
     } else if (game->ball.rect.x > WINDOW_WIDTH) {
         // Paddle 2 missed the ball.
         game->paddle_1.score++;
@@ -604,8 +610,20 @@ void check_paddle_missed_ball(struct game *game, struct tonegen *tonegen) {
         game->ball = make_ball(2, false);
         randomize_ghost_idle_offset(&game->ghost_1);
         randomize_ghost_idle_offset(&game->ghost_2);
-        set_tonegen_tone(tonegen, SCORE_TONE);
+        game->events.paddle_missed_ball = true;
     }
+}
+
+void check_events(struct game *game, struct tonegen *tonegen) {
+    if (game->events.paddle_missed_ball) {
+        set_tonegen_tone(tonegen, 240, 510);
+    } else if (game->events.ball_hit_paddle) {
+        set_tonegen_tone(tonegen, 480, 35);
+    } else if (game->events.ball_hit_wall) {
+        set_tonegen_tone(tonegen, 240, 20);
+    }
+
+    game->events = (struct events){0};
 }
 
 void check_round_over(struct game *game) {

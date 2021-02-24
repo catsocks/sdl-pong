@@ -9,11 +9,6 @@
 #define TONEGEN_FORMAT_SIZE sizeof(int16_t) // sample format
 #define TONEGEN_BUFFER_MAX_LENGTH (TONEGEN_SAMPLES_PER_SECOND / 10)
 
-struct tonegen_tone {
-    int freq;
-    int duration; // in ms
-};
-
 struct tonegen {
     SDL_AudioDeviceID device_id;
     int amplitude;
@@ -27,6 +22,6 @@ struct tonegen {
 
 struct tonegen make_tonegen(SDL_AudioDeviceID device_id,
                             float volume_percentage);
-void set_tonegen_tone(struct tonegen *gen, struct tonegen_tone tone);
+void set_tonegen_tone(struct tonegen *gen, int freq, int duration_ms);
 void tonegen_generate(struct tonegen *gen);
 void tonegen_queue(struct tonegen *gen);

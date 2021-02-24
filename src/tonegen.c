@@ -10,10 +10,10 @@ struct tonegen make_tonegen(SDL_AudioDeviceID device_id,
     };
 }
 
-void set_tonegen_tone(struct tonegen *gen, struct tonegen_tone tone) {
-    gen->freq = tone.freq;
+void set_tonegen_tone(struct tonegen *gen, int freq, int duration_ms) {
+    gen->freq = freq;
     gen->remaining_samples =
-        (tone.duration / 1000.0) * TONEGEN_SAMPLES_PER_SECOND;
+        (duration_ms / 1000.0) * TONEGEN_SAMPLES_PER_SECOND;
 }
 
 static int square_wave_sample(int sample_idx, int freq, int amplitude) {
