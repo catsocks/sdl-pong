@@ -81,12 +81,12 @@ struct ball make_ball(int paddle_no, bool round_over);
 bool check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            SDL_GameController *ctrl);
 void ghost_control_paddle(struct ghost *ghost, struct paddle *paddle,
-                          struct ball ball, double elapsed_time);
-void update_paddle(struct paddle *paddle, double elapsed_time);
+                          struct ball ball, double dt);
+void update_paddle(struct paddle *paddle, double dt);
 void randomize_ghost_speed(struct ghost *ghost);
 void randomize_ghost_bias(struct ghost *ghost);
 void randomize_ghost_idle_offset(struct ghost *ghost);
-void update_ball(struct ball *ball, double elapsed_time);
+void update_ball(struct ball *ball, double dt);
 void check_inactive_player(uint32_t last_player_input, struct ghost *ghost);
 void check_ball_hit_wall(struct game *game, struct tonegen *tonegen);
 void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen);
@@ -190,9 +190,9 @@ void main_loop(void *arg) {
 
     uint64_t previous_time = ctx->current_time;
     ctx->current_time = SDL_GetPerformanceCounter();
-    double elapsed_time = (ctx->current_time - previous_time) /
-                          (double)SDL_GetPerformanceFrequency();
-    elapsed_time = fmin(elapsed_time, 1 / 60.0);
+    double delta_time = (ctx->current_time - previous_time) /
+                        (double)SDL_GetPerformanceFrequency();
+    delta_time = fmin(delta_time, 1 / 60.0);
 
     SDL_Event event = {0};
     while (SDL_PollEvent(&event) == 1) {
@@ -228,13 +228,13 @@ void main_loop(void *arg) {
     check_inactive_player(game->last_player_2_input, &game->ghost_2);
 
     ghost_control_paddle(&game->ghost_1, &game->paddle_1, game->ball,
-                         elapsed_time);
+                         delta_time);
     ghost_control_paddle(&game->ghost_2, &game->paddle_2, game->ball,
-                         elapsed_time);
+                         delta_time);
 
-    update_paddle(&game->paddle_1, elapsed_time);
-    update_paddle(&game->paddle_2, elapsed_time);
-    update_ball(&game->ball, elapsed_time);
+    update_paddle(&game->paddle_1, delta_time);
+    update_paddle(&game->paddle_2, delta_time);
+    update_ball(&game->ball, delta_time);
 
     check_ball_hit_wall(game, &ctx->tonegen);
     check_paddle_missed_ball(game, &ctx->tonegen);
@@ -441,7 +441,7 @@ bool check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
 }
 
 void ghost_control_paddle(struct ghost *ghost, struct paddle *paddle,
-                          struct ball ball, double elapsed_time) {
+                          struct ball ball, double dt) {
     if (ghost->inactive) {
         return;
     }
@@ -463,11 +463,11 @@ void ghost_control_paddle(struct ghost *ghost, struct paddle *paddle,
     float speed = ghost->speed * (1.0f - ball_distance) * dest_distance;
     speed *= paddle->max_speed;
 
-    paddle->rect.y = move_towards(paddle->rect.y, target, speed * elapsed_time);
+    paddle->rect.y = move_towards(paddle->rect.y, target, speed * dt);
 }
 
-void update_paddle(struct paddle *paddle, double elapsed_time) {
-    paddle->rect.y += paddle->velocity * elapsed_time;
+void update_paddle(struct paddle *paddle, double dt) {
+    paddle->rect.y += paddle->velocity * dt;
     paddle->rect.y =
         clamp(paddle->rect.y, 0.0f, WINDOW_HEIGHT - paddle->rect.h);
 }
@@ -485,10 +485,10 @@ void randomize_ghost_idle_offset(struct ghost *ghost) {
     ghost->idle_offset = rand_range(-max_distance, max_distance);
 }
 
-void update_ball(struct ball *ball, double elapsed_time) {
+void update_ball(struct ball *ball, double dt) {
     if (ball->served) {
-        ball->rect.x += ball->velocity.x * elapsed_time;
-        ball->rect.y += ball->velocity.y * elapsed_time;
+        ball->rect.x += ball->velocity.x * dt;
+        ball->rect.y += ball->velocity.y * dt;
     } else if (SDL_GetTicks() >= ball->serve_timeout) {
         ball->served = true;
     }
