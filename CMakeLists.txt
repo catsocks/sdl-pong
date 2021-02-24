@@ -55,10 +55,3 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 if (EMSCRIPTEN)
 	set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "index")
 endif()
-
-# target_compile_definitions(${PROJECT_NAME}
-# 	PRIVATE
-# 	# CHEATS_ENABLED=1
-# 	# AUDIO_ENABLED=0
-# 	# CONTROLLER_ENABLED=0
-# )

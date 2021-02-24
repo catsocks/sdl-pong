@@ -10,18 +10,6 @@
 #include "math.h"
 #include "tonegen.h"
 
-// Enabling cheats lets you change the score of either paddle with the keyboard
-// keys for debugging or fun.
-#ifndef CHEATS_ENABLED
-#define CHEATS_ENABLED false
-#endif
-#ifndef AUDIO_ENABLED
-#define AUDIO_ENABLED true
-#endif
-#ifndef CONTROLLER_ENABLED
-#define CONTROLLER_ENABLED true
-#endif
-
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
@@ -54,6 +42,7 @@ struct game {
     int max_score;
     bool round_over;
     uint32_t round_restart_timeout;
+    bool cheats_enabled;
 };
 
 struct context {
@@ -102,13 +91,7 @@ int main(int argc, char *argv[]) {
     // position and angle of the ball every time it is served.
     srand(time(NULL));
 
-    int flags = SDL_INIT_VIDEO;
-    if (AUDIO_ENABLED) {
-        flags |= SDL_INIT_AUDIO;
-    }
-    if (CONTROLLER_ENABLED) {
-        flags |= SDL_INIT_GAMECONTROLLER;
-    }
+    uint32_t flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER;
     if (SDL_Init(flags) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                      "Couldn't initialize SDL: %s", SDL_GetError());
@@ -123,7 +106,7 @@ int main(int argc, char *argv[]) {
                                              .channels = 1,
                                              .samples = 2048},
                             NULL, 0);
-    if (audio_device_id == 0 && AUDIO_ENABLED) {
+    if (audio_device_id == 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                      "Couldn't open an audio device: %s", SDL_GetError());
     }
@@ -329,12 +312,12 @@ void check_keydown_event(struct context *ctx, SDL_Event event) {
         ctx->tonegen.mute = !ctx->tonegen.mute;
         break;
     case SDLK_1:
-        if (CHEATS_ENABLED) {
+        if (ctx->game.cheats_enabled) {
             ctx->game.paddle_1.score += 1;
         }
         break;
     case SDLK_2:
-        if (CHEATS_ENABLED) {
+        if (ctx->game.cheats_enabled) {
             ctx->game.paddle_2.score += 1;
         }
         break;

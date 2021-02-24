@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# -DCHEATS_ENABLED=1
-# -DAUDIO_ENABLED=0
-# -DCONTROLLER_ENABLED=0
-
 dest=build
 mkdir -p $dest
 cc -o $dest/tennis \
