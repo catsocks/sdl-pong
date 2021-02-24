@@ -51,6 +51,8 @@ struct game {
     int max_score;
     bool round_over;
     uint32_t round_restart_timeout;
+    uint32_t last_player_1_input;
+    uint32_t last_player_2_input;
     bool cheats_enabled;
 };
 
@@ -76,7 +78,7 @@ struct game make_game();
 struct paddle make_paddle(int no);
 struct ghost make_ghost();
 struct ball make_ball(int paddle_no, bool round_over);
-void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
+bool check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            SDL_GameController *ctrl);
 void ghost_control_paddle(struct ghost *ghost, struct paddle *paddle,
                           struct ball ball, double elapsed_time);
@@ -85,6 +87,7 @@ void randomize_ghost_speed(struct ghost *ghost);
 void randomize_ghost_bias(struct ghost *ghost);
 void randomize_ghost_idle_offset(struct ghost *ghost);
 void update_ball(struct ball *ball, double elapsed_time);
+void check_inactive_player(uint32_t last_player_input, struct ghost *ghost);
 void check_ball_hit_wall(struct game *game, struct tonegen *tonegen);
 void check_paddle_hit_ball(struct game *game, struct tonegen *tonegen);
 void check_paddle_missed_ball(struct game *game, struct tonegen *tonegen);
@@ -212,8 +215,17 @@ void main_loop(void *arg) {
         }
     }
 
-    check_paddle_controls(&game->paddle_1, &game->ghost_1, ctx->controller_1);
-    check_paddle_controls(&game->paddle_2, &game->ghost_2, ctx->controller_2);
+    if (check_paddle_controls(&game->paddle_1, &game->ghost_1,
+                              ctx->controller_1)) {
+        game->last_player_1_input = SDL_GetTicks();
+    }
+    if (check_paddle_controls(&game->paddle_2, &game->ghost_2,
+                              ctx->controller_2)) {
+        game->last_player_2_input = SDL_GetTicks();
+    }
+
+    check_inactive_player(game->last_player_1_input, &game->ghost_1);
+    check_inactive_player(game->last_player_2_input, &game->ghost_2);
 
     ghost_control_paddle(&game->ghost_1, &game->paddle_1, game->ball,
                          elapsed_time);
@@ -393,7 +405,7 @@ struct ball make_ball(int paddle_no, bool round_over) {
     return ball;
 }
 
-void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
+bool check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            SDL_GameController *ctrl) {
     int velocity = 0;
     if (SDL_GameControllerGetButton(ctrl, SDL_CONTROLLER_BUTTON_DPAD_UP) ==
@@ -417,12 +429,15 @@ void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
         velocity = paddle->max_speed;
     }
 
-    if (ghost->inactive) {
-        paddle->velocity = velocity;
-    } else if (velocity != 0) {
-        paddle->velocity = velocity;
-        ghost->inactive = true;
+    if (velocity == 0) {
+        if (ghost->inactive) {
+            paddle->velocity = 0;
+        }
+        return false;
     }
+    paddle->velocity = velocity;
+    ghost->inactive = true;
+    return true;
 }
 
 void ghost_control_paddle(struct ghost *ghost, struct paddle *paddle,
@@ -476,6 +491,13 @@ void update_ball(struct ball *ball, double elapsed_time) {
         ball->rect.y += ball->velocity.y * elapsed_time;
     } else if (SDL_GetTicks() >= ball->serve_timeout) {
         ball->served = true;
+    }
+}
+
+void check_inactive_player(uint32_t last_player_input, struct ghost *ghost) {
+    int timeout = 5000; // in ms
+    if (SDL_GetTicks() > last_player_input + timeout) {
+        ghost->inactive = false;
     }
 }
 
