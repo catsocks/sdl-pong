@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
                      "Couldn't open an audio device: %s", SDL_GetError());
     }
 
-    // Unpause the audio device which is paused by default.
+    // Unpause the audio device because it is paused by default.
     SDL_PauseAudioDevice(audio_device_id, 0);
 
     // Create a hidden window so it may only be shown after the game is mostly
@@ -462,6 +462,7 @@ void check_inactive_player(uint32_t last_player_input, struct ghost *ghost) {
     }
 }
 
+// TODO: Make movement smoother.
 void ghost_control_paddle(struct ghost *ghost, struct paddle *paddle,
                           struct ball ball, double dt) {
     if (ghost->inactive) {
