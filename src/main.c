@@ -122,14 +122,8 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // Try to open an audio device for playing mono signed 16-bit samples.
     SDL_AudioDeviceID audio_device_id =
-        SDL_OpenAudioDevice(NULL, 0,
-                            &(SDL_AudioSpec){.freq = TONEGEN_SAMPLES_PER_SECOND,
-                                             .format = AUDIO_S16SYS,
-                                             .channels = 1,
-                                             .samples = 2048},
-                            NULL, 0);
+        SDL_OpenAudioDevice(NULL, 0, &TONEGEN_AUDIO_SPEC, NULL, 0);
     if (audio_device_id == 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
                      "Couldn't open an audio device: %s", SDL_GetError());

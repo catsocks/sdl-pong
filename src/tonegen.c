@@ -2,6 +2,13 @@
 
 static const int FORMAT_MAX_VALUE = INT16_MAX; // determ. by TONEGEN_FORMAT_SIZE
 
+const SDL_AudioSpec TONEGEN_AUDIO_SPEC = {
+    .freq = TONEGEN_SAMPLES_PER_SECOND,
+    .format = AUDIO_S16SYS,
+    .channels = 1,
+    .samples = 2048,
+};
+
 struct tonegen make_tonegen(SDL_AudioDeviceID device_id,
                             float volume_percentage) {
     return (struct tonegen){

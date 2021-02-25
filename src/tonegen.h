@@ -9,6 +9,8 @@
 #define TONEGEN_FORMAT_SIZE sizeof(int16_t) // sample format
 #define TONEGEN_BUFFER_MAX_LENGTH (TONEGEN_SAMPLES_PER_SECOND / 10)
 
+extern const SDL_AudioSpec TONEGEN_AUDIO_SPEC;
+
 struct tonegen {
     SDL_AudioDeviceID device_id;
     int amplitude;
