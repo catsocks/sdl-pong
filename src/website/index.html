@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Tennis</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content="Tennis">
+    <meta property="og:description"
+        content="Tennis is a clone of the arcade game Pong that you can play in your browser with a keyboard or gamepad.">
+    <meta property="og:image" content="{{url}}/screenshot.png">
+    <meta property="og:url" content="{{url}}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{{url}}/screenshot-2-by-1.png">
+    <style>
+        body {
+            margin: 0px;
+            display: grid;
+            justify-content: center;
+            align-items: center;
+            font: 17px sans-serif;
+            color: white;
+            background: black;
+        }
+
+        main {
+            max-width: 56em;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 1em;
+            margin: 0 auto;
+            padding: 1em;
+        }
+
+        header,
+        footer {
+            grid-column: 1 / 3;
+        }
+
+        h1 {
+            font-size: 4em;
+        }
+
+        section.keyboard {
+            grid-row-end: 4;
+            grid-row-start: 2;
+        }
+
+        header,
+        section,
+        footer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        table {
+            border-spacing: 0 1em;
+        }
+
+        table tr td.controls {
+            margin-right: 1em;
+            display: grid;
+            gap: 0.5em;
+            grid-auto-flow: column;
+        }
+
+        kbd,
+        .gamepad-kbd {
+            width: 54px;
+        }
+
+        kbd {
+            font: inherit;
+            background: #323232;
+            display: inline-block;
+            box-sizing: border-box;
+            padding: 7px 9px;
+            border: 0 solid #585858;
+            border-right-width: 4px;
+            border-bottom-width: 4px;
+        }
+
+        kbd:not(.fkey) {
+            height: 54px;
+        }
+
+        kbd.fkey {
+            text-align: center;
+            font-size: 0.8em;
+        }
+
+        button {
+            margin: 1em 0;
+            padding: 0.4em 2.8em;
+            background: white;
+            color: black;
+            font: inherit;
+            font-size: 1.5em;
+            border: 0;
+        }
+
+        @media all and (max-width: 700px) {
+            section {
+                grid-column: 1 / 3;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <header>
+            <h1>Tennis</h1>
+            <p>Tennis is a clone of the arcade game Pong that you can play in your browser with a keyboard or gamepad.
+            </p>
+            <h2>Controls</h2>
+        </header>
+        <section class="keyboard">
+            <h3>Keyboard</h3>
+            <table>
+                <tr>
+                    <td class="controls"><kbd>W</kbd><kbd>S</kbd></td>
+                    <td>moves the <b>left</b> paddle up and down</td>
+                </tr>
+                <tr>
+                    <td class="controls"><kbd>↑</kbd><kbd>↓</kbd></td>
+                    <td>moves the <b>right</b> paddle up and down</td>
+                </tr>
+                <tr>
+                    <td class="controls"><kbd>R</kbd></td>
+                    <td>restarts the round</td>
+                </tr>
+                <tr>
+                    <td class="controls"><kbd>M</kbd></td>
+                    <td>toggles sound</td>
+                </tr>
+                <tr>
+                    <td class="controls"><kbd class="fkey">F11</kbd></td>
+                    <td>toggles fullscreen</td>
+                </tr>
+            </table>
+        </section>
+        <section>
+            <h3>Gamepad</h3>
+            <table>
+                <tr>
+                    <td class="controls">
+                        <svg class="gamepad-kbd" viewBox="0 0 47 47" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M16 0H31V16H47V31H31V47H16V31H0V16H16V0Z"
+                                fill="#585858" />
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M16 0H29V16H45V29H29V45H16V29H0V16H16V0Z"
+                                fill="#323232" />
+                            <path d="M22.5 5L24.6651 8H20.3349L22.5 5Z" fill="white" />
+                            <path d="M22.5 40L20.3349 37L24.6651 37L22.5 40Z" fill="#585858" />
+                            <path d="M5 22.5L8 20.3349L8 24.6651L5 22.5Z" fill="#585858" />
+                            <path d="M40 22.5L37 24.6651L37 20.3349L40 22.5Z" fill="#585858" />
+                        </svg>
+
+                        <svg class="gamepad-kbd" viewBox="0 0 47 47" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M16 0H31V16H47V31H31V47H16V31H0V16H16V0Z"
+                                fill="#585858" />
+                            <path fill-rule="evenodd" clip-rule="evenodd"
+                                d="M29 45L16 45L16 29L5.21346e-06 29L6.34996e-06 16L16 16L16 1.27944e-06L29 2.41593e-06L29 16L45 16L45 29L29 29L29 45Z"
+                                fill="#323232" />
+                            <path d="M22.5 40L20.3349 37L24.6651 37L22.5 40Z" fill="white" />
+                            <path d="M22.5 5L24.6651 8H20.3349L22.5 5Z" fill="#585858" />
+                            <path d="M5 22.5L8 20.3349L8 24.6651L5 22.5Z" fill="#585858" />
+                            <path d="M40 22.5L37 24.6651L37 20.3349L40 22.5Z" fill="#585858" />
+                        </svg>
+
+                    </td>
+                    <td>moves the paddle up and down</td>
+                </tr>
+            </table>
+        </section>
+        <section>
+            <h3>Touch</h3>
+            <table>
+                <tr>
+                    <td><i>Double tap</i> toggles fullscreen</td>
+                </tr>
+            </table>
+        </section>
+        <footer>
+            <a href="tennis.html"><button>Play</button></a>
+        </footer>
+    </main>
+</body>

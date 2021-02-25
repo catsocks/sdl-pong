@@ -31,7 +31,12 @@ endif ()
 
 if (EMSCRIPTEN)
 	if (CMAKE_BUILD_TYPE STREQUAL Release)
-		configure_file("${CMAKE_SOURCE_DIR}/index.html"
+		configure_file("${CMAKE_SOURCE_DIR}/src/website/tennis.html"
+		   "${CMAKE_BINARY_DIR}/tennis.html"
+		   COPYONLY
+		)
+
+		configure_file("${CMAKE_SOURCE_DIR}/src/website/index.html"
 		   "${CMAKE_BINARY_DIR}/index.html"
 		   COPYONLY
 		)
@@ -51,7 +56,3 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     C_STANDARD_REQUIRED ON
     C_EXTENSIONS OFF
 )
-
-if (EMSCRIPTEN)
-	set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "index")
-endif()

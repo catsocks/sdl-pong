@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta property="og:title" content="Tennis">
+    <meta property="og:description"
+        content="Tennis is a clone of the arcade game Pong that you can play in your browser with a keyboard or gamepad.">
+    <meta property="og:image" content="{{url}}/screenshot.png">
+    <meta property="og:url" content="{{url}}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{{url}}/screenshot-2-by-1.png">
+    <style>
+        body {
+            background: black;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            margin: 0px;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    <script type="text/javascript">
+        var Module = {
+            canvas: (function () {
+                var canvas = document.getElementById('canvas');
+
+                canvas.addEventListener('webglcontextlost', function (e) {
+                    alert('WebGL context lost. You will need to reload the page.');
+                    e.preventDefault();
+                }, false);
+
+                return canvas;
+            })()
+        };
+    </script>
+    <!-- Workaround for the SDL AudioContext not being resumed automatically by
+         Emscripten's autoResumeAudioContext on Google Chrome on Android. -->
+    <script type="text/javascript">
+        (function () {
+            // An array of all contexts to resume on the page
+            const audioContextList = [];
+
+            // An array of various user interaction events we should listen for
+            const userInputEventNames = [
+                'click', 'contextmenu', 'auxclick', 'dblclick', 'mousedown',
+                'mouseup', 'pointerup', 'touchend', 'keydown', 'keyup'
+            ];
+
+            // A proxy object to intercept AudioContexts and
+            // add them to the array for tracking and resuming later
+            self.AudioContext = new Proxy(self.AudioContext, {
+                construct(target, args) {
+                    const result = new target(...args);
+                    audioContextList.push(result);
+                    return result;
+                }
+            });
+
+            // To resume all AudioContexts being tracked
+            function resumeAllContexts(event) {
+                let count = 0;
+
+                audioContextList.forEach(context => {
+                    if (context.state !== 'running') {
+                        context.resume()
+                    } else {
+                        count++;
+                    }
+                });
+
+                // If all the AudioContexts have now resumed then we
+                // unbind all the event listeners from the page to prevent
+                // unnecessary resume attempts
+                if (count == audioContextList.length) {
+                    userInputEventNames.forEach(eventName => {
+                        document.removeEventListener(eventName, resumeAllContexts);
+                    });
+                }
+            }
+
+            // We bind the resume function for each user interaction
+            // event on the page
+            userInputEventNames.forEach(eventName => {
+                document.addEventListener(eventName, resumeAllContexts);
+            });
+        })();
+    </script>
+    <script src="tennis.js"></script>
+</body>
