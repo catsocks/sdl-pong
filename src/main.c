@@ -3,7 +3,6 @@
 #include <time.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#include <emscripten/html5.h>
 #endif
 
 #include "digits.h"
@@ -305,33 +304,11 @@ void check_controller_removed_event(struct context *ctx, SDL_Event event) {
 }
 
 void toggle_fullscreen(struct context *ctx) {
-#ifdef __EMSCRIPTEN__
-    // SDL_SetWindowFullscreen has Emscripten support but it seems to break the
-    // effects of SDL_RenderSetLogicalSize, making the canvas element be
-    // displayed in fullscreen also appears to break it, so the body element is
-    // made fullscreen instead.
-    (void)ctx; // suppress unused variable warning
-
-    EmscriptenFullscreenChangeEvent event = {0};
-    emscripten_get_fullscreen_status(&event);
-    if (event.isFullscreen) {
-        emscripten_exit_fullscreen();
-        return;
-    }
-
-    EmscriptenFullscreenStrategy strategy = {
-        .scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_DEFAULT,
-        .canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF,
-        .filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT,
-    };
-    emscripten_request_fullscreen_strategy("#body", true, &strategy);
-#else
     if (SDL_GetWindowFlags(ctx->window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
         SDL_SetWindowFullscreen(ctx->window, 0);
     } else {
         SDL_SetWindowFullscreen(ctx->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
-#endif
 }
 
 void check_finger_down_event(struct context *ctx, SDL_Event event) {
