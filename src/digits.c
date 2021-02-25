@@ -110,8 +110,8 @@ static float rendered_digit_width(int height) {
 }
 
 // The top-left corner of the digit will be equal to given position.
-static void render_digit(SDL_Renderer *renderer, SDL_FPoint position,
-                         int height, int digit) {
+static void render_digit(struct renderer_wrapper renderer_wrapper,
+                         SDL_FPoint position, int height, int digit) {
     float scale_factor = height / 2.0f;
     float line_spread = scale_factor * DIGIT_LINE_SPREAD_FACTOR;
 
@@ -130,22 +130,25 @@ static void render_digit(SDL_Renderer *renderer, SDL_FPoint position,
         p1.y += position.y + scale_factor - (line_spread / 2.0f);
         p2.y += position.y + scale_factor - (line_spread / 2.0f);
 
-        SDL_RenderFillRectF(renderer,
-                            &(SDL_FRect){.x = p1.x,
-                                         .y = p1.y,
-                                         .w = line_spread + (p2.x - p1.x),
-                                         .h = line_spread + (p2.y - p1.y)});
+        SDL_FRect rect =
+            scale_frect(renderer_wrapper, (SDL_FRect){
+                                              .x = p1.x,
+                                              .y = p1.y,
+                                              .w = line_spread + (p2.x - p1.x),
+                                              .h = line_spread + (p2.y - p1.y),
+                                          });
+        SDL_RenderFillRectF(renderer_wrapper.renderer, &rect);
     }
 }
 
 // The top-right corner of the rendered digits will be equal to given position.
-void render_digits(SDL_Renderer *renderer, SDL_FPoint position, int height,
-                   int number) {
+void render_digits(struct renderer_wrapper renderer_wrapper,
+                   SDL_FPoint position, int height, int number) {
     float width = rendered_digit_width(height);
     do {
         int digit = number % 10;
         position.x -= width;
-        render_digit(renderer, position, height, digit);
+        render_digit(renderer_wrapper, position, height, digit);
         position.x -= width; // gap
     } while ((number /= 10) != 0);
 }

@@ -15,12 +15,12 @@ float frand_range(float min, float max) {
 }
 
 static int sign(int x) {
-	return (x < 0) ? -1 : (x > 0);
+    return (x < 0) ? -1 : (x > 0);
 }
 
 float move_towards(float current, float target, float max_delta) {
-     if (fabsf(target - current) <= max_delta) {
-         return target;
-     }
-     return current + (sign(target - current) * max_delta);
+    if (fabsf(target - current) <= max_delta) {
+        return target;
+    }
+    return current + (sign(target - current) * max_delta);
 }

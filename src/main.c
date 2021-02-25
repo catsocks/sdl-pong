@@ -7,6 +7,7 @@
 
 #include "digits.h"
 #include "math.h"
+#include "renderer.h"
 #include "tonegen.h"
 
 const int WINDOW_WIDTH = 800;
@@ -61,7 +62,7 @@ struct game {
 
 struct context {
     SDL_Window *window;
-    SDL_Renderer *renderer;
+    struct renderer_wrapper renderer_wrapper;
     SDL_GameController *controller_1;
     SDL_GameController *controller_2;
     bool quit_requested;
@@ -98,11 +99,12 @@ void check_events(struct game *game, struct tonegen *tonegen);
 void check_round_over(struct game *game);
 void restart_round(struct game *game);
 void check_round_restart_timeout(struct game *game);
-void render_score(SDL_Renderer *renderer, struct paddle paddle);
-void render_net(SDL_Renderer *renderer);
-void render_paddle(SDL_Renderer *renderer, struct game *game,
+void render_score(struct renderer_wrapper renderer_wrapper,
+                  struct paddle paddle);
+void render_net(struct renderer_wrapper renderer_wrapper);
+void render_paddle(struct renderer_wrapper renderer_wrapper, struct game *game,
                    struct paddle paddle);
-void render_ball(SDL_Renderer *renderer, struct ball ball);
+void render_ball(struct renderer_wrapper renderer_wrapper, struct ball ball);
 
 int main(int argc, char *argv[]) {
     // Suppress unused variable warnings, SDL requires that main accept argc and
@@ -150,14 +152,12 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // For automatic resolution-indenpendent scaling.
-    SDL_RenderSetLogicalSize(renderer, WINDOW_WIDTH, WINDOW_HEIGHT);
-
     SDL_ShowWindow(window);
 
     struct context ctx = {
         .window = window,
-        .renderer = renderer,
+        .renderer_wrapper =
+            make_renderer_wrapper(renderer, WINDOW_WIDTH, WINDOW_HEIGHT),
         .current_time = SDL_GetPerformanceCounter(),
         .game = make_game(false),
         .tonegen = make_tonegen(audio_device_id, 2.5f),
@@ -212,6 +212,8 @@ void main_loop(void *arg) {
         }
     }
 
+    update_renderer_wrapper(&ctx->renderer_wrapper);
+
     if (check_paddle_controls(&game->paddle_1, &game->ghost_1,
                               ctx->controller_1)) {
         game->last_player_1_input = SDL_GetTicks();
@@ -250,23 +252,25 @@ void main_loop(void *arg) {
     check_round_over(game);
     check_round_restart_timeout(game);
 
-    SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255); // black
-    SDL_RenderClear(ctx->renderer);
+    SDL_SetRenderDrawColor(ctx->renderer_wrapper.renderer, 0, 0, 0,
+                           255); // black
+    SDL_RenderClear(ctx->renderer_wrapper.renderer);
 
-    SDL_SetRenderDrawColor(ctx->renderer, 255, 255, 255, 255); // white
+    SDL_SetRenderDrawColor(ctx->renderer_wrapper.renderer, 255, 255, 255,
+                           255); // white
 
-    render_score(ctx->renderer, game->paddle_1);
-    render_score(ctx->renderer, game->paddle_2);
+    render_score(ctx->renderer_wrapper, game->paddle_1);
+    render_score(ctx->renderer_wrapper, game->paddle_2);
 
-    render_net(ctx->renderer);
-    render_paddle(ctx->renderer, game, game->paddle_1);
-    render_paddle(ctx->renderer, game, game->paddle_2);
-    render_ball(ctx->renderer, game->ball);
+    render_net(ctx->renderer_wrapper);
+    render_paddle(ctx->renderer_wrapper, game, game->paddle_1);
+    render_paddle(ctx->renderer_wrapper, game, game->paddle_2);
+    render_ball(ctx->renderer_wrapper, game->ball);
 
     tonegen_generate(&ctx->tonegen);
     tonegen_queue(&ctx->tonegen);
 
-    SDL_RenderPresent(ctx->renderer);
+    SDL_RenderPresent(ctx->renderer_wrapper.renderer);
 }
 
 struct game make_game(bool cheats_enabled) {
@@ -632,9 +636,10 @@ void check_round_restart_timeout(struct game *game) {
     }
 }
 
-void render_score(SDL_Renderer *renderer, struct paddle paddle) {
+void render_score(struct renderer_wrapper renderer_wrapper,
+                  struct paddle paddle) {
     render_digits(
-        renderer,
+        renderer_wrapper,
         (SDL_FPoint){
             .x =
                 ((paddle.no == 1) ? (WINDOW_WIDTH / 2.0f) : WINDOW_WIDTH) - 100,
@@ -644,27 +649,30 @@ void render_score(SDL_Renderer *renderer, struct paddle paddle) {
         paddle.score);
 }
 
-void render_net(SDL_Renderer *renderer) {
+void render_net(struct renderer_wrapper renderer_wrapper) {
     for (int y = 0; y < WINDOW_HEIGHT; y += NET_HEIGHT * 2) {
-        SDL_RenderFillRectF(renderer,
-                            &(SDL_FRect){
-                                .x = (WINDOW_WIDTH - NET_WIDTH) / 2.0f,
-                                .y = y,
-                                .w = NET_WIDTH,
-                                .h = NET_HEIGHT,
-                            });
+        SDL_FRect rect = {
+            .x = (WINDOW_WIDTH - NET_WIDTH) / 2.0f,
+            .y = y,
+            .w = NET_WIDTH,
+            .h = NET_HEIGHT,
+        };
+        rect = scale_frect(renderer_wrapper, rect);
+        SDL_RenderFillRectF(renderer_wrapper.renderer, &rect);
     }
 }
 
-void render_paddle(SDL_Renderer *renderer, struct game *game,
+void render_paddle(struct renderer_wrapper renderer_wrapper, struct game *game,
                    struct paddle paddle) {
     if (!game->round_over) {
-        SDL_RenderFillRectF(renderer, &paddle.rect);
+        SDL_FRect rect = scale_frect(renderer_wrapper, paddle.rect);
+        SDL_RenderFillRectF(renderer_wrapper.renderer, &rect);
     }
 }
 
-void render_ball(SDL_Renderer *renderer, struct ball ball) {
+void render_ball(struct renderer_wrapper renderer_wrapper, struct ball ball) {
     if (ball.served) {
-        SDL_RenderFillRectF(renderer, &ball.rect);
+        SDL_FRect rect = scale_frect(renderer_wrapper, ball.rect);
+        SDL_RenderFillRectF(renderer_wrapper.renderer, &rect);
     }
 }

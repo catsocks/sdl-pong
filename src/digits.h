@@ -2,5 +2,7 @@
 
 #include <SDL.h>
 
-void render_digits(SDL_Renderer *renderer, SDL_FPoint position, int height,
-                   int number);
+#include "renderer.h"
+
+void render_digits(struct renderer_wrapper renderer_wrapper,
+                   SDL_FPoint position, int height, int number);
