@@ -14,13 +14,13 @@ if __name__ == "__main__":
 
     os.makedirs(dest, exist_ok=True)
 
-    for name in ("index.html", "tennis.html", "tennis.js", "tennis.wasm"):
+    for name in ("index.html", "game.html", "game.js", "game.wasm"):
         shutil.copyfile(build / name, dest / name)
 
     for name in ("screenshot.png", "screenshot-2-by-1.png"):
         shutil.copyfile(name, dest / name)
 
-    for file in ("index.html", "tennis.html"):
+    for file in ("index.html", "game.html"):
         path = dest / file
         text = path.read_text().replace(r"{{url}}", url)
         path.write_text(text)
