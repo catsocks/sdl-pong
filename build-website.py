@@ -5,8 +5,8 @@ from pathlib import Path
 import shutil
 
 if __name__ == "__main__":
-    url = os.environ.get("URL", "")
-    if not url:
+    url = os.environ.get("URL")
+    if url is None:
         sys.exit("Must provide URL environment variable")
 
     build = Path("build/wasm/release")
