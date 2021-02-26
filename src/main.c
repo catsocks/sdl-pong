@@ -239,18 +239,18 @@ void main_loop(void *arg) {
         update_paddle(&game->paddle_2, delta_time);
         update_ball(&game->ball, delta_time, game->time);
 
+        check_ball_hit_wall(game);
+        check_paddle_missed_ball(game);
+        check_paddle_hit_ball(game);
+
+        check_round_over(game);
+        check_round_restart_timeout(game);
+
         frame_time -= delta_time;
         game->time += delta_time;
     }
 
-    check_ball_hit_wall(game);
-    check_paddle_missed_ball(game);
-    check_paddle_hit_ball(game);
-
     check_events(&ctx->game, &ctx->tonegen);
-
-    check_round_over(game);
-    check_round_restart_timeout(game);
 
     SDL_SetRenderDrawColor(ctx->renderer_wrapper.renderer, 0, 0, 0,
                            255); // black
