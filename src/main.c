@@ -316,6 +316,9 @@ void toggle_fullscreen(struct context *ctx) {
 }
 
 void check_finger_down_event(struct context *ctx, SDL_Event event) {
+    if (event.tfinger.fingerId != 0) {
+        return;
+    }
     unsigned max_delay = 500; // in ms
     if (event.tfinger.timestamp - ctx->last_finger_down_event < max_delay) {
         toggle_fullscreen(ctx);
