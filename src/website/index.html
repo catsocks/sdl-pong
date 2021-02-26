@@ -28,7 +28,7 @@
             max-width: 56em;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-gap: 1em;
+            grid-gap: 1em 3em;
             margin: 0 auto;
             padding: 1em;
         }
@@ -60,11 +60,19 @@
             border-spacing: 0 1em;
         }
 
+        table tr td:first-child {
+            padding-right: 1em;
+        }
+
         table tr td.controls {
-            margin-right: 1em;
             display: grid;
-            gap: 0.5em;
+            grid-gap: 0.5em;
             grid-auto-flow: column;
+            justify-content: right;
+        }
+
+        table tr td:first-child:not(.controls) {
+            text-align: right;
         }
 
         kbd,
@@ -106,6 +114,12 @@
             section {
                 grid-column: 1 / 3;
             }
+        }
+
+        @media print{
+           button {
+               display: none;
+           }
         }
     </style>
 </head>
