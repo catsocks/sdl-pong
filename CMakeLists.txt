@@ -29,22 +29,6 @@ else()
 	include_directories(${SDL2_INCLUDE_DIR})
 endif ()
 
-if (EMSCRIPTEN)
-	if (CMAKE_BUILD_TYPE STREQUAL Release)
-		configure_file("${CMAKE_SOURCE_DIR}/src/website/game.html"
-		   "${CMAKE_BINARY_DIR}/game.html"
-		   COPYONLY
-		)
-
-		configure_file("${CMAKE_SOURCE_DIR}/src/website/index.html"
-		   "${CMAKE_BINARY_DIR}/index.html"
-		   COPYONLY
-		)
-	else()
-		set(CMAKE_EXECUTABLE_SUFFIX ".html")
-	endif()
-endif()
-
 file(GLOB SOURCE_FILES src/*.c)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
@@ -58,5 +42,15 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 if (EMSCRIPTEN)
+	configure_file("${CMAKE_SOURCE_DIR}/src/website/game.html"
+	   "${CMAKE_BINARY_DIR}/game.html"
+	   COPYONLY
+	)
+
+	configure_file("${CMAKE_SOURCE_DIR}/src/website/index.html"
+	   "${CMAKE_BINARY_DIR}/index.html"
+	   COPYONLY
+	)
+
 	set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "game")
 endif()
