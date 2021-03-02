@@ -26,7 +26,7 @@ struct ghost {
 struct paddle {
     int no;
     SDL_FRect rect;
-    float velocity; // vertical
+    float velocity;
     float max_speed;
     int score;
 };
@@ -159,9 +159,9 @@ int main(int argc, char *argv[]) {
         .window = window,
         .renderer_wrapper =
             make_renderer_wrapper(renderer, WINDOW_WIDTH, WINDOW_HEIGHT),
-        .current_time = SDL_GetPerformanceCounter(),
         .game = make_game(false),
         .tonegen = make_tonegen(audio_device_id, 2.5f),
+        .current_time = SDL_GetPerformanceCounter(),
     };
 
 #ifdef __EMSCRIPTEN__
@@ -281,7 +281,7 @@ struct game make_game(bool cheats_enabled) {
     game.paddle_2 = make_paddle(2);
     game.ghost_1 = make_ghost();
     game.ghost_2 = make_ghost();
-    game.ball = make_ball(rand_range(1, 2), false, 0);
+    game.ball = make_ball(rand_range(1, 2), false, game.time);
     game.max_score = 11;
     return game;
 }
