@@ -45,6 +45,7 @@ struct events {
 };
 
 struct game {
+    bool paused;
     double time;
     bool cheats_enabled;
     struct paddle paddle_1;
@@ -226,7 +227,7 @@ void main_loop(void *arg) {
     check_inactive_player(game->last_player_1_input, &game->ghost_1);
     check_inactive_player(game->last_player_2_input, &game->ghost_2);
 
-    while (frame_time > 0.0) {
+    while (!ctx->game.paused && frame_time > 0.0) {
         double max_frame_time = 1 / 60.0;
         double delta_time = fmin(frame_time, max_frame_time);
 
@@ -338,6 +339,9 @@ void check_keydown_event(struct context *ctx, SDL_Event event) {
         break;
     case SDLK_m:
         ctx->tonegen.mute = !ctx->tonegen.mute;
+        break;
+    case SDLK_p:
+        ctx->game.paused = !ctx->game.paused;
         break;
     case SDLK_1:
         if (ctx->game.cheats_enabled) {
