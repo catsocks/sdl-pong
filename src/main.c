@@ -333,9 +333,7 @@ void check_keydown_event(struct context *ctx, SDL_Event event) {
         toggle_fullscreen(ctx);
         break;
     case SDLK_r:
-        if (SDL_GetModState() & KMOD_SHIFT) {
-            restart_round(&ctx->game);
-        }
+        restart_round(&ctx->game);
         break;
     case SDLK_m:
         ctx->tonegen.mute = !ctx->tonegen.mute;
