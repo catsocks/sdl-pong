@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import sys
 from pathlib import Path
 import shutil
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--force-url-https", action="store_true")
+
 if __name__ == "__main__":
+    args = parser.parse_args()
+
     url = os.environ.get("URL")
     if url is None:
         sys.exit("Must provide URL environment variable")
+
+    if args.force_url_https:
+        if url.startswith("http") and not url.startswith("https"):
+            url = url.replace("http", "https", 1)
 
     build = Path("build/wasm/release")
     dest = Path("build/website")
