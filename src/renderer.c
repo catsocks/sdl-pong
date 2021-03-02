@@ -21,12 +21,12 @@ void update_renderer_wrapper(struct renderer_wrapper *wrapper) {
         fminf(wrapper->output_size.h / (float)wrapper->logical_size.h,
               wrapper->output_size.w / (float)wrapper->logical_size.w);
 
+    wrapper->viewport.w = wrapper->scale * wrapper->logical_size.w;
+    wrapper->viewport.h = wrapper->scale * wrapper->logical_size.h;
     wrapper->viewport.x =
-        (wrapper->output_size.w - (wrapper->scale * wrapper->logical_size.w)) /
-        2.0;
+        (wrapper->output_size.w - (wrapper->viewport.w)) / 2.0;
     wrapper->viewport.y =
-        (wrapper->output_size.h - (wrapper->scale * wrapper->logical_size.h)) /
-        2.0;
+        (wrapper->output_size.h - (wrapper->viewport.h)) / 2.0;
 }
 
 SDL_FRect scale_frect(struct renderer_wrapper wrapper, SDL_FRect rect) {

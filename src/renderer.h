@@ -6,10 +6,10 @@
 // Emscripten port when the game is made fullscreen.
 struct renderer_wrapper {
     SDL_Renderer *renderer;
-    SDL_Rect logical_size;
     SDL_Rect output_size;
+    SDL_Rect logical_size;
+    SDL_Rect viewport;
     float scale;
-    SDL_FRect viewport;
 };
 
 struct renderer_wrapper make_renderer_wrapper(SDL_Renderer *renderer,
