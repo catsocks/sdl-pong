@@ -157,8 +157,6 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    SDL_ShowWindow(window);
-
     struct context ctx = {
         .window = window,
         .renderer_wrapper =
@@ -167,6 +165,8 @@ int main(int argc, char *argv[]) {
         .tonegen = make_tonegen(audio_device_id, 2.5f),
         .current_time = SDL_GetPerformanceCounter(),
     };
+
+    SDL_ShowWindow(window);
 
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop_arg(main_loop, &ctx, 0, 1);
