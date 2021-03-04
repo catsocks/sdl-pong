@@ -166,6 +166,8 @@ int main(int argc, char *argv[]) {
         .current_time = SDL_GetPerformanceCounter(),
     };
 
+    SDL_AddEventWatch(renderer_wrapper_event_watch, &ctx.renderer_wrapper);
+
     SDL_ShowWindow(window);
 
 #ifdef __EMSCRIPTEN__
