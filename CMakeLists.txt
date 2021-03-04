@@ -24,6 +24,12 @@ endif()
 if (EMSCRIPTEN)
 	add_compile_options(-s USE_SDL=2)
 	add_link_options(-s USE_SDL=2)
+
+	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+		# Allow stdout, stderr and the return code of the running app to be
+		# displayed through the emrun tool.
+		add_link_options(--emrun)
+	endif()
 else()
 	find_package(SDL2 REQUIRED)
 	include_directories(${SDL2_INCLUDE_DIR})
