@@ -87,7 +87,7 @@ void toggle_fullscreen(struct context *ctx);
 struct paddle make_paddle(int no);
 struct ghost make_ghost();
 struct ball make_ball(int paddle_no, bool round_over, double t);
-bool check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
+void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            struct player_input *input);
 void check_inactive_player(struct player_input input, struct ghost *ghost);
 void ghost_control_paddle(struct ghost *ghost, struct paddle *paddle,
@@ -412,7 +412,7 @@ struct ball make_ball(int paddle_no, bool round_over, double time) {
     return ball;
 }
 
-bool check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
+void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            struct player_input *input) {
     int velocity = 0;
     if (SDL_GameControllerGetButton(
@@ -441,12 +441,12 @@ bool check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
         if (ghost->inactive) {
             paddle->velocity = 0;
         }
-        return false;
+        return;
     }
     paddle->velocity = velocity;
     ghost->inactive = true;
     input->last_input_timestamp = SDL_GetTicks();
-    return true;
+    return;
 }
 
 void check_inactive_player(struct player_input input, struct ghost *ghost) {
