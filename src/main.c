@@ -70,7 +70,8 @@ struct context {
     struct game game;
     struct tonegen tonegen;
     uint64_t current_time;
-    uint32_t last_finger_down_event;
+    uint32_t last_center_finger_down_timestamp;
+    SDL_FingerID last_center_finger_down_finger_id;
 };
 
 void main_loop(void *arg);
@@ -317,14 +318,18 @@ void toggle_fullscreen(struct context *ctx) {
 }
 
 void check_finger_down_event(struct context *ctx, SDL_Event event) {
-    if (event.tfinger.fingerId != 0) {
-        return;
+    if (event.tfinger.x > 0.3f && event.tfinger.x < 0.7f) {
+        unsigned time_since_last_finger_down =
+            event.tfinger.timestamp - ctx->last_center_finger_down_timestamp;
+        bool same_finger =
+            ctx->last_center_finger_down_finger_id == event.tfinger.fingerId;
+        unsigned max_delay = 500; // in ms
+        if (time_since_last_finger_down < max_delay && same_finger) {
+            toggle_fullscreen(ctx);
+        }
+        ctx->last_center_finger_down_timestamp = event.tfinger.timestamp;
+        ctx->last_center_finger_down_finger_id = event.tfinger.fingerId;
     }
-    unsigned max_delay = 500; // in ms
-    if (event.tfinger.timestamp - ctx->last_finger_down_event < max_delay) {
-        toggle_fullscreen(ctx);
-    }
-    ctx->last_finger_down_event = event.tfinger.timestamp;
 }
 
 void check_keydown_event(struct context *ctx, SDL_Event event) {
