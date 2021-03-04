@@ -176,6 +176,9 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
+    SDL_GameControllerClose(ctx.player_1_input.controller);
+    SDL_GameControllerClose(ctx.player_2_input.controller);
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
 
