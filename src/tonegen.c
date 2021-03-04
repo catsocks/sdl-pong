@@ -6,7 +6,7 @@ const SDL_AudioSpec TONEGEN_AUDIO_SPEC = {
     .freq = TONEGEN_SAMPLES_PER_SECOND,
     .format = AUDIO_S16SYS,
     .channels = 1,
-    .samples = 2048,
+    .samples = 4096,
 };
 
 struct tonegen make_tonegen(SDL_AudioDeviceID device_id,
