@@ -26,6 +26,8 @@ struct ghost {
 struct paddle {
     int no;
     SDL_FRect rect;
+    float move_to;
+    bool move_to_enabled;
     float velocity;
     float max_speed;
     int score;
@@ -61,6 +63,10 @@ struct game {
 
 struct player_input {
     SDL_GameController *controller;
+    SDL_TouchID touch_id;
+    SDL_FingerID finger_id;
+    int finger_y;
+    bool finger_down;
     uint32_t last_input_timestamp;
 };
 
@@ -82,6 +88,8 @@ struct game make_game(bool cheats_enabled);
 void check_controller_added_event(struct context *ctx, SDL_Event event);
 void check_controller_removed_event(struct context *ctx, SDL_Event event);
 void check_finger_down_event(struct context *ctx, SDL_Event event);
+void check_finger_motion_event(struct context *ctx, SDL_Event event);
+void check_finger_up_event(struct context *ctx, SDL_Event event);
 void check_keydown_event(struct context *ctx, SDL_Event event);
 void toggle_fullscreen(struct context *ctx);
 struct paddle make_paddle(int no);
@@ -213,6 +221,12 @@ void main_loop(void *arg) {
         case SDL_FINGERDOWN:
             check_finger_down_event(ctx, event);
             break;
+        case SDL_FINGERMOTION:
+            check_finger_motion_event(ctx, event);
+            break;
+        case SDL_FINGERUP:
+            check_finger_up_event(ctx, event);
+            break;
         case SDL_CONTROLLERDEVICEADDED:
             check_controller_added_event(ctx, event);
             break;
@@ -325,7 +339,17 @@ void toggle_fullscreen(struct context *ctx) {
 }
 
 void check_finger_down_event(struct context *ctx, SDL_Event event) {
-    if (event.tfinger.x > 0.3f && event.tfinger.x < 0.7f) {
+    if (event.tfinger.x < 0.3f) {
+        ctx->player_1_input.touch_id = event.tfinger.touchId;
+        ctx->player_1_input.finger_id = event.tfinger.fingerId;
+        ctx->player_1_input.finger_y = event.tfinger.y * WINDOW_HEIGHT;
+        ctx->player_1_input.finger_down = true;
+    } else if (event.tfinger.x > 0.7f) {
+        ctx->player_2_input.touch_id = event.tfinger.touchId;
+        ctx->player_2_input.finger_id = event.tfinger.fingerId;
+        ctx->player_2_input.finger_y = event.tfinger.y * WINDOW_HEIGHT;
+        ctx->player_2_input.finger_down = true;
+    } else {
         unsigned time_since_last_finger_down =
             event.tfinger.timestamp - ctx->last_center_finger_down_timestamp;
         bool same_finger =
@@ -336,6 +360,36 @@ void check_finger_down_event(struct context *ctx, SDL_Event event) {
         }
         ctx->last_center_finger_down_timestamp = event.tfinger.timestamp;
         ctx->last_center_finger_down_finger_id = event.tfinger.fingerId;
+    }
+}
+
+void check_finger_motion_event(struct context *ctx, SDL_Event event) {
+    if (ctx->player_1_input.touch_id == event.tfinger.touchId) {
+        if (ctx->player_1_input.finger_id == event.tfinger.fingerId) {
+            ctx->player_1_input.finger_y = event.tfinger.y * WINDOW_HEIGHT;
+        }
+    }
+    if (ctx->player_2_input.touch_id == event.tfinger.touchId) {
+        if (ctx->player_2_input.finger_id == event.tfinger.fingerId) {
+            ctx->player_2_input.finger_y = event.tfinger.y * WINDOW_HEIGHT;
+        }
+    }
+}
+
+void check_finger_up_event(struct context *ctx, SDL_Event event) {
+    if (ctx->player_1_input.touch_id == event.tfinger.touchId) {
+        if (ctx->player_1_input.finger_id == event.tfinger.fingerId) {
+            ctx->player_1_input.touch_id = 0;
+            ctx->player_1_input.finger_id = 0;
+            ctx->player_1_input.finger_down = false;
+        }
+    }
+    if (ctx->player_2_input.touch_id == event.tfinger.touchId) {
+        if (ctx->player_2_input.finger_id == event.tfinger.fingerId) {
+            ctx->player_2_input.touch_id = 0;
+            ctx->player_2_input.finger_id = 0;
+            ctx->player_2_input.finger_down = false;
+        }
     }
 }
 
@@ -414,6 +468,16 @@ struct ball make_ball(int paddle_no, bool round_over, double time) {
 
 void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            struct player_input *input) {
+    // NOTE: There should be a better way to do this.
+    if (input->finger_down) {
+        paddle->move_to = input->finger_y - (paddle->rect.h / 2);
+        paddle->move_to_enabled = true;
+        ghost->inactive = true;
+        input->last_input_timestamp = SDL_GetTicks();
+        return;
+    }
+    paddle->move_to_enabled = false;
+
     int velocity = 0;
     if (SDL_GameControllerGetButton(
             input->controller, SDL_CONTROLLER_BUTTON_DPAD_UP) == SDL_PRESSED) {
@@ -484,6 +548,12 @@ void ghost_control_paddle(struct ghost *ghost, struct paddle *paddle,
 }
 
 void update_paddle(struct paddle *paddle, double dt) {
+    // NOTE: There should be a better way to do this.
+    if (paddle->move_to_enabled) {
+        paddle->rect.y = move_towards(paddle->rect.y, paddle->move_to,
+                                      paddle->max_speed * dt);
+    }
+
     paddle->rect.y += paddle->velocity * dt;
     paddle->rect.y =
         clamp(paddle->rect.y, 0.0f, WINDOW_HEIGHT - paddle->rect.h);
