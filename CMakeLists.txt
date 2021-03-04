@@ -48,6 +48,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 if (EMSCRIPTEN)
+	# NOTE: Should game.html be made a shell file and be passed to emcc as one
+	# instead?
 	configure_file("${CMAKE_SOURCE_DIR}/src/website/game.html"
 	   "${CMAKE_BINARY_DIR}/game.html"
 	   COPYONLY
