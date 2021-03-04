@@ -8,12 +8,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta property="og:title" content="Tennis">
     <meta property="og:description"
-        content="Tennis is a clone of the arcade game Pong that you can play in your browser with a keyboard or gamepad.">
+        content="Tennis is a clone of the Pong arcade game that you can play in your browser with a keyboard, gamepad and touch.">
     <meta property="og:image" content="{{url}}/screenshot.png">
     <meta property="og:url" content="{{url}}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="{{url}}/screenshot-2-by-1.png">
     <style>
+        :root {
+          --kbd-size: 48px;
+          --gamepad-input-size: 54px;
+        }
+
         body {
             margin: 0px;
             display: grid;
@@ -25,12 +30,11 @@
         }
 
         main {
-            max-width: 56em;
+            margin: 0 auto;
+            padding: 1em;
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-gap: 1em 3em;
-            margin: 0 auto;
-            padding: 1em;
         }
 
         header,
@@ -42,9 +46,8 @@
             font-size: 4em;
         }
 
-        section.keyboard {
-            grid-row-end: 4;
-            grid-row-start: 2;
+        p {
+            text-align: center;
         }
 
         header,
@@ -56,48 +59,61 @@
             justify-content: center;
         }
 
+        section.keyboard-controls {
+            grid-row-end: 4;
+            grid-row-start: 2;
+        }
+
         table {
             border-spacing: 0 1em;
         }
 
         table tr td:first-child {
             padding-right: 1em;
-        }
-
-        table tr td.controls {
             display: grid;
             grid-gap: 0.5em;
             grid-auto-flow: column;
             justify-content: right;
         }
 
-        table tr td:first-child:not(.controls) {
-            text-align: right;
-        }
-
-        kbd,
-        .gamepad-kbd {
-            width: 54px;
+        .gamepad-input {
+            width: var(--gamepad-input-size);
+            height: var(--gamepad-input-size);
         }
 
         kbd {
-            font: inherit;
-            background: #323232;
-            display: inline-block;
-            box-sizing: border-box;
+            width: var(--kbd-size);
             padding: 7px 9px;
+            box-sizing: border-box;
+            display: inline-block;
             border: 0 solid #585858;
             border-right-width: 4px;
             border-bottom-width: 4px;
+            background: #323232;
+            font: inherit;
+            font-size: 0.9em;
         }
 
-        kbd:not(.fkey) {
-            height: 54px;
+        kbd:not(.function-key) {
+            height: var(--kbd-size);
         }
 
-        kbd.fkey {
+        kbd.function-key {
             text-align: center;
             font-size: 0.8em;
+        }
+
+        ul {
+            padding: 0;
+            list-style: none;
+        }
+
+        li {
+            text-align: center;
+        }
+
+        li:not(:last-child) { 
+           margin-bottom: 1em;
         }
 
         button {
@@ -110,14 +126,14 @@
             border: 0;
         }
 
-        @media all and (max-width: 700px) {
+        @media all and (max-width: 1040px) {
             section {
                 grid-column: 1 / 3;
             }
         }
 
-        @media print{
-           button {
+        @media print {
+           .no-print {
                display: none;
            }
         }
@@ -128,31 +144,35 @@
     <main>
         <header>
             <h1>Tennis</h1>
-            <p>Tennis is a clone of the arcade game Pong that you can play in your browser with a keyboard or gamepad.
+            <p>Tennis is a clone of the Pong arcade game that you can play in your browser with a keyboard, gamepad and touch.
             </p>
             <h2>Controls</h2>
         </header>
-        <section class="keyboard">
+        <section class="keyboard-controls">
             <h3>Keyboard</h3>
             <table>
                 <tr>
-                    <td class="controls"><kbd>W</kbd><kbd>S</kbd></td>
+                    <td><kbd>W</kbd><kbd>S</kbd></td>
                     <td>moves the <b>left</b> paddle up and down</td>
                 </tr>
                 <tr>
-                    <td class="controls"><kbd>↑</kbd><kbd>↓</kbd></td>
+                    <td><kbd>↑</kbd><kbd>↓</kbd></td>
                     <td>moves the <b>right</b> paddle up and down</td>
                 </tr>
                 <tr>
-                    <td class="controls"><kbd>R</kbd></td>
+                    <td><kbd>R</kbd></td>
                     <td>restarts the round</td>
                 </tr>
                 <tr>
-                    <td class="controls"><kbd>M</kbd></td>
+                    <td><kbd>M</kbd></td>
                     <td>toggles sound</td>
                 </tr>
                 <tr>
-                    <td class="controls"><kbd class="fkey">F11</kbd></td>
+                    <td><kbd>P</kbd></td>
+                    <td>toggles pause</td>
+                </tr>
+                <tr>
+                    <td><kbd class="function-key">F11</kbd></td>
                     <td>toggles fullscreen</td>
                 </tr>
             </table>
@@ -161,8 +181,8 @@
             <h3>Gamepad</h3>
             <table>
                 <tr>
-                    <td class="controls">
-                        <svg class="gamepad-kbd" viewBox="0 0 47 47" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <td>
+                        <svg class="gamepad-input" viewBox="0 0 47 47" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M16 0H31V16H47V31H31V47H16V31H0V16H16V0Z"
                                 fill="#585858" />
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M16 0H29V16H45V29H29V45H16V29H0V16H16V0Z"
@@ -173,7 +193,7 @@
                             <path d="M40 22.5L37 24.6651L37 20.3349L40 22.5Z" fill="#585858" />
                         </svg>
 
-                        <svg class="gamepad-kbd" viewBox="0 0 47 47" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg class="gamepad-input" viewBox="0 0 47 47" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M16 0H31V16H47V31H31V47H16V31H0V16H16V0Z"
                                 fill="#585858" />
                             <path fill-rule="evenodd" clip-rule="evenodd"
@@ -192,13 +212,12 @@
         </section>
         <section>
             <h3>Touch</h3>
-            <table>
-                <tr>
-                    <td><i>Double tap</i> toggles fullscreen</td>
-                </tr>
-            </table>
+            <ul>
+                <li>Tap either side of the screen to <b>move the paddle</b>.</li>
+                <li>Double tap on the middle of the screen to <b>toggle fullscreen</b>.</li>
+            </ul>
         </section>
-        <footer>
+        <footer class="no-print">
             <a href="game.html"><button>Play</button></a>
         </footer>
     </main>
