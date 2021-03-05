@@ -22,8 +22,11 @@ if (NOT EMSCRIPTEN)
 endif()
 
 if (EMSCRIPTEN)
+	set(CMAKE_EXECUTABLE_SUFFIX ".html")
+
 	add_compile_options(-s USE_SDL=2)
 	add_link_options(-s USE_SDL=2)
+	add_link_options(--shell-file "${CMAKE_SOURCE_DIR}/src/website/shell.html")
 
 	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 		# Allow stdout, stderr and the return code of the running app to be
@@ -48,13 +51,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 if (EMSCRIPTEN)
-	# NOTE: Should game.html be made a shell file and be passed to emcc as one
-	# instead?
-	configure_file("${CMAKE_SOURCE_DIR}/src/website/game.html"
-	   "${CMAKE_BINARY_DIR}/game.html"
-	   COPYONLY
-	)
-
 	configure_file("${CMAKE_SOURCE_DIR}/src/website/index.html"
 	   "${CMAKE_BINARY_DIR}/index.html"
 	   COPYONLY
