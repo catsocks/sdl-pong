@@ -7,6 +7,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 # set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(SHELL_FILE "${CMAKE_SOURCE_DIR}/src/website/shell.html")
+
 if (MSVC)
     add_compile_options(/W4)
 else()
@@ -25,8 +27,7 @@ if (EMSCRIPTEN)
 	set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
 	add_compile_options(-s USE_SDL=2)
-	add_link_options(-s USE_SDL=2)
-	add_link_options(--shell-file "${CMAKE_SOURCE_DIR}/src/website/shell.html")
+	add_link_options(-s USE_SDL=2 --shell-file ${SHELL_FILE})
 
 	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 		# Allow stdout, stderr and the return code of the running app to be
@@ -56,5 +57,8 @@ if (EMSCRIPTEN)
 	   COPYONLY
 	)
 
-	set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "game")
+	set_target_properties(${PROJECT_NAME} PROPERTIES
+        OUTPUT_NAME "game"
+        LINK_DEPENDS ${SHELL_FILE}
+    )
 endif()
