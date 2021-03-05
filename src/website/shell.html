@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta property="og:title" content="Tennis">
     <meta property="og:description"
@@ -18,19 +19,18 @@
 
         #canvas {
             position: absolute;
-            top: 0px;
-            left: 0px;
-            margin: 0px;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            display: block;
         }
     </style>
 </head>
 
 <body>
-    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    <div id="spinner" class="absolute-center"></div>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
     <script type="text/javascript">
         var Module = {
             canvas: (function () {
