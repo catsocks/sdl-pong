@@ -14,7 +14,8 @@
     <meta name="twitter:image" content="{{url}}/screenshot-2-by-1.png">
     <style>
         :root {
-            --spinner-width: 6px;
+            --spinner-size: min(3vw, 40px);
+            --spinner-thickness: min(0.7vw, 6px);
             --spinner-color-1: rgb(255, 255, 255);
             --spinner-color-2: rgb(0, 0, 0);
         }
@@ -31,13 +32,13 @@
         }
 
         #spinner {
-            height: 50px;
-            width: 50px;
+            height: var(--spinner-size);
+            width: var(--spinner-size);
             animation: rotation 0.8s linear infinite;
-            border-left: var(--spinner-width) solid var(--spinner-color-1);
-            border-right: var(--spinner-width) solid var(--spinner-color-1);
-            border-bottom: var(--spinner-width) solid var(--spinner-color-1);
-            border-top: var(--spinner-width) solid var(--spinner-color-2);
+            border-left: var(--spinner-thickness) solid var(--spinner-color-1);
+            border-right: var(--spinner-thickness) solid var(--spinner-color-1);
+            border-bottom: var(--spinner-thickness) solid var(--spinner-color-1);
+            border-top: var(--spinner-thickness) solid var(--spinner-color-2);
             border-radius: 100%;
             background-color: var(--spinner-color-2);
         }
