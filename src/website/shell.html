@@ -7,7 +7,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta property="og:title" content="Tennis">
     <meta property="og:description"
-        content="Tennis is a clone of the arcade game Pong that you can play in your browser with a keyboard or gamepad.">
+        content="Tennis is a clone of the Pong arcade game that you can play in your browser with a keyboard, gamepad and touch.">
     <meta property="og:image" content="{{url}}/screenshot.png">
     <meta property="og:url" content="{{url}}">
     <meta name="twitter:card" content="summary_large_image">
@@ -43,8 +43,13 @@
         }
 
         @keyframes rotation {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         #canvas {
@@ -65,7 +70,7 @@
     <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
     <script type="text/javascript">
         var spinnerElement = document.getElementById('spinner');
-        
+
         var Module = {
             canvas: (function () {
                 var canvas = document.getElementById('canvas');
@@ -77,14 +82,14 @@
 
                 return canvas;
             })(),
-            setStatus: function(text) {
+            setStatus: function (text) {
                 if (!text) {
                     spinnerElement.hidden = true;
                 }
             },
         };
 
-        window.onerror = function() {
+        window.onerror = function () {
             spinnerElement.hidden = true;
         };
     </script>
