@@ -52,9 +52,6 @@ set_target_properties(
                C_EXTENSIONS OFF)
 
 if(EMSCRIPTEN)
-    configure_file("${CMAKE_SOURCE_DIR}/src/website/index.html"
-                   "${CMAKE_BINARY_DIR}/index.html" COPYONLY)
-
     set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "game"
                                                      LINK_DEPENDS ${SHELL_FILE})
 endif()
