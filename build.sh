@@ -1,5 +1,4 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 dest=build
 mkdir -p $dest
 cc -o $dest/tennis \
