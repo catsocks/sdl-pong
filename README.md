@@ -38,16 +38,19 @@ You can watch a video of 1972 Pong on Youtube
 
 ## Build
 
+You can build the project using either [CMake](https://cmake.org/) or by simply
+running build.sh on an Unix-like system.
+
 The only build requirements for a native build are the SDL library version 2 and
 a C compiler with support for C99. I have only built this project on Linux but
 it should be buildable on Windows and macOS as it is or with very minor changes.
 
-You can build the project using either [CMake](https://cmake.org/) or by simply
-running build.sh on an Unix-like system.
-
 For a WebAssembly build you only need to additionally install
-[Emscripten](https://emscripten.org/index.html) and you can build using CMake or
-by running build-wasm.sh.
+[Emscripten](https://emscripten.org/index.html) and you can build using CMake
+with the help of the __emcmake__ tool or by running build-wasm.sh.
+
+To build for Windows using MinGW it's helpful to use __mingw64-cmake__ or
+__mingw32-cmake__ in place of the default CMake executable.
 
 ## License
 
