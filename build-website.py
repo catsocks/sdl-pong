@@ -6,6 +6,18 @@ from pathlib import Path
 import shutil
 
 parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-g",
+    "--game-build-path",
+    default="build",
+    help="path to a build of the game",
+)
+parser.add_argument(
+    "-b",
+    "--build-path",
+    default="build-website",
+    help="path to where the website should be built",
+)
 parser.add_argument("--force-url-https", action="store_true")
 
 if __name__ == "__main__":
@@ -19,18 +31,20 @@ if __name__ == "__main__":
         if url.startswith("http") and not url.startswith("https"):
             url = url.replace("http", "https", 1)
 
-    build = Path("build/wasm/release")
-    dest = Path("build/website")
+    game_path = Path(args.game_build_path)
+    build_path = Path(args.build_path)
 
-    os.makedirs(dest, exist_ok=True)
+    os.makedirs(build_path, exist_ok=True)
 
-    for name in ("index.html", "game.html", "game.js", "game.wasm"):
-        shutil.copyfile(build / name, dest / name)
+    shutil.copyfile(Path("src/website/index.html"), build_path / "index.html")
+
+    for name in ("game.html", "game.js", "game.wasm"):
+        shutil.copyfile(game_path / name, build_path / name)
 
     for name in ("screenshot.png", "screenshot-2-by-1.png"):
-        shutil.copyfile(name, dest / name)
+        shutil.copyfile(name, build_path / name)
 
     for file in ("index.html", "game.html"):
-        path = dest / file
+        path = build_path / file
         text = path.read_text().replace(r"{{url}}", url)
         path.write_text(text)
