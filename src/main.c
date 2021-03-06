@@ -625,7 +625,7 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
 
     float max_bounce_angle = M_PI / 4.0f;
     float bounce_angle =
-        (intersect / (paddle->rect.h / 2.0)) * max_bounce_angle;
+        (intersect / (paddle->rect.h / 2.0f)) * max_bounce_angle;
 
     // The length of the velocity vector.
     float speed = sqrtf((ball->velocity.y * ball->velocity.y) +
