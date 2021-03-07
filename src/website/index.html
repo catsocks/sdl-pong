@@ -50,11 +50,6 @@
             text-align: center;
         }
 
-        p.note {
-            font-size: 0.9em;
-            filter: brightness(70%);
-        }
-
         main {
             margin: 1em 0;
         }
@@ -122,6 +117,11 @@
             margin-bottom: 1em;
         }
 
+        #landscape-mode-note {
+            font-size: 0.9em;
+            filter: brightness(70%);
+        }
+
         button {
             margin: 1em 0;
             padding: 0.4em 2.8em;
@@ -135,6 +135,12 @@
         @media all and (max-width: 1040px) {
             section {
                 grid-column: 1 / 3;
+            }
+        }
+
+        @media screen and (orientation: landscape) {
+            #landscape-mode-note {
+                display: none;
             }
         }
 
@@ -224,11 +230,11 @@
                         <li>Tap either side of the screen to <b>move a paddle</b>.</li>
                         <li>Double tap on the middle of the screen to <b>toggle fullscreen</b>.</li>
                     </ul>
-                    <p class="note">You should switch to landscape mode.</p>
                 </section>
             </div>
         </main>
         <footer class="no-print">
+            <p id="landscape-mode-note">You should switch to landscape mode.</p>
             <a href="game.html"><button>Play</button></a>
         </footer>
     </div>
