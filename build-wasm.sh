@@ -3,7 +3,7 @@ dest=build
 mkdir -p $dest
 emcc -o $dest/game.html \
 	src/*.c \
-	--shell-file src/website/shell.html \
+	--shell-file src/web/shell.html \
 	-std=c99 \
 	-Wall -Wextra -pedantic \
 	-s WASM=1 \

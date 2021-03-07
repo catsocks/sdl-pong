@@ -7,7 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 # set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SHELL_FILE "${CMAKE_SOURCE_DIR}/src/website/shell.html")
+set(SHELL_FILE "${CMAKE_SOURCE_DIR}/src/web/shell.html")
 
 if(MSVC)
     add_compile_options(/W4)
