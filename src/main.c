@@ -38,6 +38,7 @@ struct ball {
     SDL_FPoint velocity;
     bool served;
     uint32_t serve_time;
+    bool horizontal_bounce;
 };
 
 struct events {
@@ -55,6 +56,7 @@ struct game {
     struct ghost ghost_1;
     struct ghost ghost_2;
     struct ball ball;
+    struct ball ghost_ball;
     int max_score;
     bool round_over;
     uint32_t round_restart_time;
@@ -95,6 +97,7 @@ void toggle_fullscreen(struct context *ctx);
 struct paddle make_paddle(int no);
 struct ghost make_ghost();
 struct ball make_ball(int paddle_no, bool round_over, double t);
+struct ball make_ghost_ball(struct ball ball);
 void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            struct player_input *input);
 void check_inactive_player(struct player_input input, struct ghost *ghost);
@@ -118,6 +121,8 @@ void render_net(struct renderer_wrapper renderer_wrapper);
 void render_paddle(struct renderer_wrapper renderer_wrapper, struct game *game,
                    struct paddle paddle);
 void render_ball(struct renderer_wrapper renderer_wrapper, struct ball ball);
+// void debug_render_ghost_ball(struct renderer_wrapper renderer_wrapper,
+//                              struct ball ball);
 
 int main(int argc, char *argv[]) {
     // Suppress unused variable warnings, SDL requires that main accept argc and
@@ -250,14 +255,15 @@ void main_loop(void *arg) {
         double max_frame_time = 1 / 60.0;
         double delta_time = fmin(frame_time, max_frame_time);
 
-        ghost_control_paddle(&game->ghost_1, &game->paddle_1, game->ball,
+        ghost_control_paddle(&game->ghost_1, &game->paddle_1, game->ghost_ball,
                              delta_time);
-        ghost_control_paddle(&game->ghost_2, &game->paddle_2, game->ball,
+        ghost_control_paddle(&game->ghost_2, &game->paddle_2, game->ghost_ball,
                              delta_time);
 
         update_paddle(&game->paddle_1, delta_time);
         update_paddle(&game->paddle_2, delta_time);
         update_ball(&game->ball, delta_time, game->time);
+        update_ball(&game->ghost_ball, delta_time, game->time);
 
         check_ball_hit_wall(game);
         check_paddle_missed_ball(game);
@@ -286,6 +292,7 @@ void main_loop(void *arg) {
     render_paddle(ctx->renderer_wrapper, game, game->paddle_1);
     render_paddle(ctx->renderer_wrapper, game, game->paddle_2);
     render_ball(ctx->renderer_wrapper, game->ball);
+    // debug_render_ghost_ball(ctx->renderer_wrapper, game->ghost_ball);
 
     tonegen_generate(&ctx->tonegen);
     tonegen_queue(&ctx->tonegen);
@@ -301,6 +308,7 @@ struct game make_game(bool cheats_enabled) {
     game.ghost_1 = make_ghost();
     game.ghost_2 = make_ghost();
     game.ball = make_ball(rand_range(1, 2), false, game.time);
+    game.ghost_ball = make_ghost_ball(game.ball);
     game.max_score = 11;
     return game;
 }
@@ -466,6 +474,16 @@ struct ball make_ball(int paddle_no, bool round_over, double time) {
     return ball;
 }
 
+struct ball make_ghost_ball(struct ball ball) {
+    float angle = atan2f(ball.velocity.y, ball.velocity.x);
+    float speed = sqrtf((ball.velocity.y * ball.velocity.y) +
+                        (ball.velocity.x * ball.velocity.x));
+    speed += rand_range(-40, 40);
+    ball.velocity.x = cosf(angle) * speed;
+    ball.velocity.y = sinf(angle) * speed;
+    return ball;
+}
+
 void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            struct player_input *input) {
     // NOTE: There should be a better way to do this.
@@ -541,7 +559,14 @@ void ghost_control_paddle(struct ghost *ghost, struct paddle *paddle,
     threshold = paddle->rect.h / 2;
     dest_distance = fminf(dest_distance, threshold) / threshold;
 
-    float speed = ghost->speed * (1.0f - ball_distance) * dest_distance;
+    float direction_factor = 1.0f;
+    if ((ball.velocity.x > 0.0f && paddle->no == 1) ||
+        (ball.velocity.x < 0.0f && paddle->no == 2)) {
+        direction_factor = 0.5f;
+    }
+
+    float speed = ghost->speed * (1.0f - ball_distance) * dest_distance *
+                  direction_factor;
     speed *= paddle->max_speed;
 
     paddle->rect.y = move_towards(paddle->rect.y, target, speed * dt);
@@ -560,7 +585,7 @@ void update_paddle(struct paddle *paddle, double dt) {
 }
 
 void randomize_ghost_speed(struct ghost *ghost) {
-    ghost->speed = frand_range(0.85f, 0.90f);
+    ghost->speed = frand_range(0.80f, 0.85f);
 }
 
 void randomize_ghost_bias(struct ghost *ghost) {
@@ -573,6 +598,21 @@ void randomize_ghost_idle_offset(struct ghost *ghost) {
 }
 
 void update_ball(struct ball *ball, double dt, double t) {
+    // The ball will always bounce off vertical walls.
+    if (ball->rect.y < 0.0f || ball->rect.y + ball->rect.h > WINDOW_HEIGHT) {
+        ball->velocity.y *= -1.0f;
+        ball->rect.y = clamp(ball->rect.y, 0.0f, WINDOW_HEIGHT - ball->rect.h);
+    }
+
+    // The ball will only bounce off horizontal walls when the round is over.
+    if (ball->horizontal_bounce) {
+        if (ball->rect.x < 0.0f || ball->rect.x + ball->rect.h > WINDOW_WIDTH) {
+            ball->velocity.x *= -1.0f;
+            ball->rect.x =
+                clamp(ball->rect.x, 0.0f, WINDOW_WIDTH - ball->rect.w);
+        }
+    }
+
     if (ball->served) {
         ball->rect.x += ball->velocity.x * dt;
         ball->rect.y += ball->velocity.y * dt;
@@ -585,21 +625,10 @@ void check_ball_hit_wall(struct game *game) {
     struct ball *ball = &game->ball;
 
     // The ball will always bounce off vertical walls.
-    if (ball->rect.y < 0.0f || ball->rect.y + ball->rect.h > WINDOW_HEIGHT) {
-        ball->velocity.y *= -1.0f;
-        if (!game->round_over) {
+    if (!game->round_over) {
+        if (ball->rect.y < 0.0f ||
+            ball->rect.y + ball->rect.h > WINDOW_HEIGHT) {
             game->events.ball_hit_wall = true;
-        }
-
-        ball->rect.y = clamp(ball->rect.y, 0.0f, WINDOW_HEIGHT - ball->rect.h);
-    }
-
-    // The ball will only bounce off horizontal walls when the round is over.
-    if (game->round_over) {
-        if (ball->rect.x < 0.0f || ball->rect.x + ball->rect.h > WINDOW_WIDTH) {
-            ball->velocity.x *= -1.0f;
-            ball->rect.x =
-                clamp(ball->rect.x, 0.0f, WINDOW_WIDTH - ball->rect.w);
         }
     }
 }
@@ -632,8 +661,8 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
                         (ball->velocity.x * ball->velocity.x));
 
     // Increment speed if it hasn't reached the limit.
-    if (speed < 550) {
-        speed += 20;
+    if (speed < 540) {
+        speed += 15;
     }
 
     if (paddle->no == 1) {
@@ -651,9 +680,11 @@ void check_paddle_hit_ball(struct game *game) {
     if (!game->round_over) {
         if (paddle_intersects_ball(game->paddle_1, game->ball)) {
             bounce_ball_off_paddle(&game->ball, &game->paddle_1);
+            game->ghost_ball = make_ghost_ball(game->ball);
             randomize_ghost_bias(&game->ghost_2);
         } else if (paddle_intersects_ball(game->paddle_2, game->ball)) {
             bounce_ball_off_paddle(&game->ball, &game->paddle_2);
+            game->ghost_ball = make_ghost_ball(game->ball);
             randomize_ghost_bias(&game->ghost_1);
         } else {
             return;
@@ -671,6 +702,7 @@ void check_paddle_missed_ball(struct game *game) {
             return;
         }
         game->ball = make_ball(1, false, game->time);
+        game->ghost_ball = make_ghost_ball(game->ball);
         randomize_ghost_idle_offset(&game->ghost_1);
         randomize_ghost_idle_offset(&game->ghost_2);
         game->events.paddle_missed_ball = true;
@@ -682,6 +714,7 @@ void check_paddle_missed_ball(struct game *game) {
             return;
         }
         game->ball = make_ball(2, false, game->time);
+        game->ghost_ball = make_ghost_ball(game->ball);
         randomize_ghost_idle_offset(&game->ghost_1);
         randomize_ghost_idle_offset(&game->ghost_2);
         game->events.paddle_missed_ball = true;
@@ -703,6 +736,7 @@ void check_events(struct game *game, struct tonegen *tonegen) {
 void check_round_over(struct game *game) {
     if (!game->round_over && (game->paddle_1.score == game->max_score ||
                               game->paddle_2.score == game->max_score)) {
+        game->ball.horizontal_bounce = true;
         game->round_over = true;
         game->round_restart_time = game->time + 6;
     }
@@ -711,11 +745,10 @@ void check_round_over(struct game *game) {
 void restart_round(struct game *game) {
     game->paddle_1.score = 0;
     game->paddle_2.score = 0;
-    game->ghost_1.inactive = false;
-    game->ghost_2.inactive = false;
     randomize_ghost_speed(&game->ghost_1);
     randomize_ghost_speed(&game->ghost_2);
     game->ball = make_ball(rand_range(1, 2), false, game->time);
+    game->ghost_ball = make_ghost_ball(game->ball);
     game->round_over = false;
 }
 
@@ -765,3 +798,12 @@ void render_ball(struct renderer_wrapper renderer_wrapper, struct ball ball) {
         SDL_RenderFillRectF(renderer_wrapper.renderer, &rect);
     }
 }
+
+// void debug_render_ghost_ball(struct renderer_wrapper renderer_wrapper,
+//                              struct ball ball) {
+//     SDL_Color c;
+//     SDL_GetRenderDrawColor(renderer_wrapper.renderer, &c.r, &c.g, &c.b,
+//     &c.a); SDL_SetRenderDrawColor(renderer_wrapper.renderer, 0, 255, 0, 255);
+//     // gray render_ball(renderer_wrapper, ball);
+//     SDL_SetRenderDrawColor(renderer_wrapper.renderer, c.r, c.g, c.b, c.a);
+// }
