@@ -90,8 +90,8 @@ struct game make_game(bool cheats_enabled);
 void check_controller_added_event(struct context *ctx, SDL_Event event);
 void check_controller_removed_event(struct context *ctx, SDL_Event event);
 void check_finger_down_event(struct context *ctx, SDL_Event event);
-void check_finger_motion_event(struct context *ctx, SDL_Event event);
 void check_finger_up_event(struct context *ctx, SDL_Event event);
+void check_finger_motion_event(struct context *ctx, SDL_Event event);
 void check_keydown_event(struct context *ctx, SDL_Event event);
 void toggle_fullscreen(struct context *ctx);
 struct paddle make_paddle(int no);
@@ -226,11 +226,11 @@ void main_loop(void *arg) {
         case SDL_FINGERDOWN:
             check_finger_down_event(ctx, event);
             break;
-        case SDL_FINGERMOTION:
-            check_finger_motion_event(ctx, event);
-            break;
         case SDL_FINGERUP:
             check_finger_up_event(ctx, event);
+            break;
+        case SDL_FINGERMOTION:
+            check_finger_motion_event(ctx, event);
             break;
         case SDL_CONTROLLERDEVICEADDED:
             check_controller_added_event(ctx, event);
