@@ -8,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta property="og:title" content="Tennis">
     <meta property="og:description"
-        content="Tennis is a clone of the Pong arcade game that you can play in your browser with a keyboard, gamepad and touch.">
+        content="Tennis is a clone of the Pong arcade game that you can play in your browser with a keyboard, gamepads and touch.">
     <meta property="og:image" content="{{url}}/screenshot.png">
     <meta property="og:url" content="{{url}}">
     <meta name="twitter:card" content="summary_large_image">
@@ -20,10 +20,7 @@
         }
 
         body {
-            margin: 0px;
-            display: grid;
-            justify-content: center;
-            align-items: center;
+            margin: 0;
             font: 17px sans-serif;
             color: white;
             background: black;
@@ -31,10 +28,11 @@
 
         main {
             margin: 0 auto;
-            padding: 1em;
+            padding: 0 1em;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-gap: 1em 3em;
+            grid-gap: 0 3em;
+            max-width: 1040px;
         }
 
         header,
@@ -150,7 +148,8 @@
     <main>
         <header>
             <h1>Tennis</h1>
-            <p>Tennis is a clone of the Pong arcade game that you can play in your browser with a keyboard, gamepad and touch.</p>
+            <p>Tennis is a clone of the Pong arcade game that you can play in your browser with a keyboard, gamepads and touch.</p>
+            <p>Win a match by scoring 11 points.</p>
             <h2>Controls</h2>
         </header>
         <section class="keyboard-controls">
