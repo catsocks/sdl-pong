@@ -506,8 +506,8 @@ void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
         velocity = paddle->max_speed;
     }
 
-    int up_key = SDL_SCANCODE_W;
-    int down_key = SDL_SCANCODE_S;
+    SDL_Scancode up_key = SDL_SCANCODE_W;
+    SDL_Scancode down_key = SDL_SCANCODE_S;
     if (paddle->no == 2) {
         up_key = SDL_SCANCODE_UP;
         down_key = SDL_SCANCODE_DOWN;
