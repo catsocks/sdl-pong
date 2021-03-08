@@ -585,7 +585,7 @@ void update_paddle(struct paddle *paddle, double dt) {
 }
 
 void randomize_ghost_speed(struct ghost *ghost) {
-    ghost->speed = frand_range(0.80f, 0.85f);
+    ghost->speed = frand_range(0.80f, 0.9f);
 }
 
 void randomize_ghost_bias(struct ghost *ghost) {
