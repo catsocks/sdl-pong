@@ -134,6 +134,10 @@ int main(int argc, char *argv[]) {
     // position and angle of the ball every time it is served.
     srand(time(NULL));
 
+#ifndef NDEBUG
+    SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_DEBUG);
+#endif
+
     uint32_t flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER;
     if (SDL_Init(flags) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
@@ -739,6 +743,8 @@ void check_round_over(struct game *game) {
         game->ball.horizontal_bounce = true;
         game->round_over = true;
         game->round_restart_time = game->time + 6;
+        SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Round over: %d-%d",
+                     game->paddle_1.score, game->paddle_2.score);
     }
 }
 
