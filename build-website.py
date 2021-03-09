@@ -49,8 +49,6 @@ if __name__ == "__main__":
         "assets", build_path, copy_function=shutil.copyfile, dirs_exist_ok=True
     )
 
-    shutil.copyfile(Path("src/web/index.html"), build_path / "index.html")
-
     for name in ("game.html", "game.js", "game.wasm"):
         shutil.copyfile(game_path / name, build_path / name)
 
