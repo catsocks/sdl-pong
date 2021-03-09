@@ -10,4 +10,4 @@
 float clamp(float x, float min, float max);
 int rand_range(int min, int max);
 float frand_range(float min, float max);
-float move_towards(float current, float target, float max_delta);
+int sign(int x);
