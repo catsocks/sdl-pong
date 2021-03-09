@@ -305,7 +305,7 @@ void check_paddle_missed_ball(struct game *game) {
     game->events.paddle_missed_ball = true;
 }
 
-void check_events(struct game *game, struct tonegen *tonegen) {
+void check_game_events(struct game *game, struct tonegen *tonegen) {
     if (game->events.paddle_missed_ball) {
         set_tonegen_tone(tonegen, 240, 510);
     } else if (game->events.ball_hit_paddle) {

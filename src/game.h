@@ -84,7 +84,7 @@ void update_ball(struct ball *ball, double dt, double t);
 void check_ball_hit_wall(struct game *game);
 void check_paddle_hit_ball(struct game *game);
 void check_paddle_missed_ball(struct game *game);
-void check_events(struct game *game, struct tonegen *tonegen);
+void check_game_events(struct game *game, struct tonegen *tonegen);
 void check_round_over(struct game *game);
 void restart_round(struct game *game);
 void check_round_restart_timeout(struct game *game);

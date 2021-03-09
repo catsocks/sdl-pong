@@ -189,7 +189,7 @@ void main_loop(void *arg) {
         game->time += delta_time;
     }
 
-    check_events(&ctx->game, &ctx->tonegen);
+    check_game_events(&ctx->game, &ctx->tonegen);
 
     SDL_SetRenderDrawColor(ctx->renderer_wrapper.renderer, 0, 0, 0,
                            255); // black
