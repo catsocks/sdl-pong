@@ -57,6 +57,7 @@ struct game {
     int max_score;
     bool paused;
     double time;
+    bool debug_mode;
     bool round_over;
     uint32_t round_restart_time;
     struct events events;
@@ -120,8 +121,8 @@ void render_net(struct renderer_wrapper renderer_wrapper);
 void render_paddle(struct renderer_wrapper renderer_wrapper, struct game *game,
                    struct paddle paddle);
 void render_ball(struct renderer_wrapper renderer_wrapper, struct ball ball);
-// void debug_render_ghost_ball(struct renderer_wrapper renderer_wrapper,
-//                              struct ball ball);
+void debug_render_ghost_ball(struct renderer_wrapper renderer_wrapper,
+                             struct ball ball);
 
 int main(int argc, char *argv[]) {
     // Suppress unused variable warnings, SDL requires that main accept argc and
@@ -293,7 +294,9 @@ void main_loop(void *arg) {
     render_paddle(ctx->renderer_wrapper, game, game->paddle_1);
     render_paddle(ctx->renderer_wrapper, game, game->paddle_2);
     render_ball(ctx->renderer_wrapper, game->ball);
-    // debug_render_ghost_ball(ctx->renderer_wrapper, game->ghost_ball);
+    if (game->debug_mode) {
+        debug_render_ghost_ball(ctx->renderer_wrapper, game->ghost_ball);
+    }
 
     tonegen_generate(&ctx->tonegen);
     tonegen_queue(&ctx->tonegen);
@@ -424,6 +427,12 @@ void check_keydown_event(struct context *ctx, SDL_Event event) {
     case SDLK_2:
         if (ctx->game.cheats_enabled) {
             ctx->game.paddle_2.score += 1;
+        }
+        break;
+    case SDLK_d:
+        if (event.key.keysym.mod & (KMOD_CTRL | KMOD_SHIFT)) {
+            // Ctrl + Shift + D
+            ctx->game.debug_mode = !ctx->game.debug_mode;
         }
         break;
     }
@@ -794,11 +803,11 @@ void render_ball(struct renderer_wrapper renderer_wrapper, struct ball ball) {
     }
 }
 
-// void debug_render_ghost_ball(struct renderer_wrapper renderer_wrapper,
-//                              struct ball ball) {
-//     SDL_Color c;
-//     SDL_GetRenderDrawColor(renderer_wrapper.renderer, &c.r, &c.g, &c.b,
-//     &c.a); SDL_SetRenderDrawColor(renderer_wrapper.renderer, 0, 255, 0, 255);
-//     // gray render_ball(renderer_wrapper, ball);
-//     SDL_SetRenderDrawColor(renderer_wrapper.renderer, c.r, c.g, c.b, c.a);
-// }
+void debug_render_ghost_ball(struct renderer_wrapper renderer_wrapper,
+                             struct ball ball) {
+    SDL_Color c;
+    SDL_GetRenderDrawColor(renderer_wrapper.renderer, &c.r, &c.g, &c.b, &c.a);
+    SDL_SetRenderDrawColor(renderer_wrapper.renderer, 0, 255, 0, 255); // green
+    render_ball(renderer_wrapper, ball);
+    SDL_SetRenderDrawColor(renderer_wrapper.renderer, c.r, c.g, c.b, c.a);
+}
