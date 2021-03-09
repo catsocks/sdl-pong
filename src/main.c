@@ -100,7 +100,7 @@ struct ball make_ghost_ball(struct ball ball);
 void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            struct player_input *input);
 void check_input_inactivity(struct player_input input, struct ghost *ghost);
-void set_ghost_velocity(struct ghost *ghost, struct paddle *paddle,
+void set_ghost_velocity(struct ghost *ghost, struct paddle paddle,
                         struct ball ball);
 void update_paddle(struct paddle *paddle, double dt);
 void set_ghost_speed(struct ghost *ghost);
@@ -249,8 +249,8 @@ void main_loop(void *arg) {
     check_input_inactivity(ctx->player_1_input, &game->ghost_1);
     check_input_inactivity(ctx->player_2_input, &game->ghost_2);
 
-    set_ghost_velocity(&game->ghost_1, &game->paddle_1, game->ghost_ball);
-    set_ghost_velocity(&game->ghost_2, &game->paddle_2, game->ghost_ball);
+    set_ghost_velocity(&game->ghost_1, game->paddle_1, game->ghost_ball);
+    set_ghost_velocity(&game->ghost_2, game->paddle_2, game->ghost_ball);
 
     check_paddle_controls(&game->paddle_1, &game->ghost_1,
                           &ctx->player_1_input);
@@ -469,7 +469,7 @@ struct ball make_ball(int paddle_no, bool round_over, double time) {
     ball.velocity.y = -sinf(angle) * speed;
 
     if (!round_over) {
-        ball.serve_time = time + 2;
+        ball.serve_time = time + 2.0;
     }
 
     return ball;
@@ -540,36 +540,36 @@ void check_input_inactivity(struct player_input input, struct ghost *ghost) {
     }
 }
 
-void set_ghost_velocity(struct ghost *ghost, struct paddle *paddle,
+void set_ghost_velocity(struct ghost *ghost, struct paddle paddle,
                         struct ball ball) {
     if (ghost->inactive) {
         return;
     }
 
     float target =
-        ((WINDOW_HEIGHT - paddle->rect.h) / 2.0f) + ghost->idle_offset;
+        ((WINDOW_HEIGHT - paddle.rect.h) / 2.0f) + ghost->idle_offset;
     if (ball.served) {
-        float bias = (paddle->rect.h / 2.0f) * ghost->bias;
-        target = ball.rect.y - ((paddle->rect.h - ball.rect.h) / 2.0f) + bias;
+        float bias = (paddle.rect.h / 2.0f) * ghost->bias;
+        target = ball.rect.y - ((paddle.rect.h - ball.rect.h) / 2.0f) + bias;
     }
 
-    float ball_distance = fabsf(ball.rect.x - paddle->rect.x);
+    float ball_distance = fabsf(ball.rect.x - paddle.rect.x);
     float cutoff = WINDOW_WIDTH / 1.1f;
     float ball_dist_factor = 1.0f - (fminf(ball_distance, cutoff) / cutoff);
 
-    float target_distance = fabsf(target - paddle->rect.y);
-    cutoff = paddle->rect.h / 2.0f;
+    float target_distance = fabsf(target - paddle.rect.y);
+    cutoff = paddle.rect.h / 2.0f;
     float target_dist_factor = fminf(target_distance, cutoff) / cutoff;
 
     float ball_dir_factor = 1.0f;
-    if ((ball.velocity.x > 0.0f && paddle->no == 1) ||
-        (ball.velocity.x < 0.0f && paddle->no == 2)) {
+    if ((ball.velocity.x > 0.0f && paddle.no == 1) ||
+        (ball.velocity.x < 0.0f && paddle.no == 2)) {
         ball_dir_factor = 0.5f;
     }
 
-    float speed = paddle->max_speed * ghost->speed * ball_dist_factor *
+    float speed = paddle.max_speed * ghost->speed * ball_dist_factor *
                   target_dist_factor * ball_dir_factor;
-    ghost->velocity = sign(target - paddle->rect.y) * speed;
+    ghost->velocity = sign(target - paddle.rect.y) * speed;
 }
 
 void update_paddle(struct paddle *paddle, double dt) {
@@ -731,7 +731,7 @@ void check_round_over(struct game *game) {
                               game->paddle_2.score == game->max_score)) {
         game->ball.horizontal_bounce = true;
         game->round_over = true;
-        game->round_restart_time = game->time + 6;
+        game->round_restart_time = game->time + 6.0;
         SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Round over: %d-%d",
                      game->paddle_1.score, game->paddle_2.score);
     }
@@ -758,9 +758,9 @@ void render_score(struct renderer_wrapper renderer_wrapper,
     render_digits(
         renderer_wrapper,
         (SDL_FPoint){
-            .x =
-                ((paddle.no == 1) ? (WINDOW_WIDTH / 2.0f) : WINDOW_WIDTH) - 100,
-            .y = 50,
+            .x = ((paddle.no == 1) ? (WINDOW_WIDTH / 2.0f) : WINDOW_WIDTH) -
+                 100.0f,
+            .y = 50.0f,
         },
         80, // height
         paddle.score);
