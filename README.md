@@ -47,10 +47,10 @@ it should be buildable on Windows and macOS as it is or with very minor changes.
 
 For a WebAssembly build you only need to additionally install
 [Emscripten](https://emscripten.org/index.html) and you can build using CMake
-with the help of the __emcmake__ tool or by running build-wasm.sh.
+with the help of the _emcmake_ tool or by running build-wasm.sh.
 
-To build for Windows using MinGW it's helpful to use __mingw64-cmake__ or
-__mingw32-cmake__ in place of the default CMake executable.
+To build for Windows using MinGW it's helpful to use _mingw64-cmake_ or
+_mingw32-cmake_ in place of the default CMake executable.
 
 ## License
 
