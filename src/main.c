@@ -41,8 +41,6 @@ int main(int argc, char *argv[]) {
     (void)argc;
     (void)argv;
 
-    // For choosing which paddle gets served the ball first and the vertical
-    // position and angle of the ball every time it is served.
     srand(time(NULL));
 
 #ifndef NDEBUG
