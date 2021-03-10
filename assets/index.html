@@ -29,6 +29,11 @@
             background: black;
         }
 
+        #github-ribbon {
+            position: absolute;
+            right: 0;
+        }
+
         #container {
             margin: 0 auto;
             padding: 0 1em;
@@ -139,6 +144,12 @@
             border: 0;
         }
 
+        @media all and (max-width: 700px) {
+            #github-ribbon img {
+                width: 110px;
+            }
+        }
+
         @media all and (max-width: 1040px) {
             section {
                 grid-column: 1 / 3;
@@ -160,6 +171,9 @@
 </head>
 
 <body>
+    <a id="github-ribbon" class="no-print" href="https://github.com/catsocks/tennis-sdl">
+        <img src="github-ribbon.svg" alt="Fork me on GitHub" loading="lazy">
+    </a>
     <div id="container">
         <header>
             <h1 translate="no">Tennis</h1>

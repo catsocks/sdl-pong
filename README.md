@@ -56,3 +56,7 @@ _mingw32-cmake_ in place of the default CMake executable.
 
 Everything with the exception of the contents of the cmake folder is dedicated
 to the public domain under the CC0 1.0 Universal license.
+
+## Acknowledgements
+
+* ['Fork me on GitHub' SVG ribbons](https://github.com/Usecue/fork-me-on-github-svg-ribbons)
