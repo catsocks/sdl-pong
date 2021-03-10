@@ -54,8 +54,9 @@ _mingw32-cmake_ in place of the default CMake executable.
 
 ## License
 
-Everything with the exception of the contents of the cmake folder is dedicated
-to the public domain under the CC0 1.0 Universal license.
+Everything with the exception of the files mentioned in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) is dedicated to the public
+domain under the CC0 1.0 Universal license included in the LICENSE.md file.
 
 ## Acknowledgements
 
