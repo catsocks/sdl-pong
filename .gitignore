@@ -11,3 +11,6 @@ build/
 
 # Qt Creator
 CMakeLists.txt.user
+
+# Sourcetrail
+*.srctrl*
