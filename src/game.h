@@ -14,7 +14,7 @@ struct ghost {
     int idle_offset;
     float speed;
     float bias;
-    bool inactive;
+    bool active;
     float velocity;
 };
 
@@ -54,6 +54,7 @@ struct game {
     bool debug_mode;
     bool round_over;
     uint32_t round_restart_time;
+    float difficulty;
     struct events events;
 };
 
@@ -68,16 +69,16 @@ struct player_input {
 
 struct game make_game(bool cheats_enabled);
 struct paddle make_paddle(int no);
-struct ghost make_ghost();
+struct ghost make_ghost(float difficulty);
 struct ball make_ball(int paddle_no, bool round_over, double t);
-struct ball make_ghost_ball(struct ball ball);
+struct ball make_ghost_ball(struct ball ball, float difficulty);
 void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
                            struct player_input *input);
 void check_input_inactivity(struct player_input input, struct ghost *ghost);
 void set_ghost_velocity(struct ghost *ghost, struct paddle paddle,
                         struct ball ball);
 void update_paddle(struct paddle *paddle, double dt);
-void set_ghost_speed(struct ghost *ghost);
+void set_ghost_speed(struct ghost *ghost, float difficulty);
 void set_ghost_bias(struct ghost *ghost);
 void set_ghost_idle_offset(struct ghost *ghost);
 void update_ball(struct ball *ball, double dt, double t);

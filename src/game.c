@@ -11,10 +11,10 @@ struct game make_game(bool cheats_enabled) {
     game.cheats_enabled = cheats_enabled;
     game.paddle_1 = make_paddle(1);
     game.paddle_2 = make_paddle(2);
-    game.ghost_1 = make_ghost();
-    game.ghost_2 = make_ghost();
+    game.ghost_1 = make_ghost(game.difficulty);
+    game.ghost_2 = make_ghost(game.difficulty);
     game.ball = make_ball(rand_range(1, 2), false, game.time);
-    game.ghost_ball = make_ghost_ball(game.ball);
+    game.ghost_ball = make_ghost_ball(game.ball, game.difficulty);
     game.max_score = 11;
     return game;
 }
@@ -31,9 +31,10 @@ struct paddle make_paddle(int no) {
     return paddle;
 }
 
-struct ghost make_ghost() {
+struct ghost make_ghost(float difficulty) {
     struct ghost ghost = {0};
-    set_ghost_speed(&ghost);
+    ghost.active = true;
+    set_ghost_speed(&ghost, difficulty);
     set_ghost_bias(&ghost);
     return ghost;
 }
@@ -65,11 +66,12 @@ struct ball make_ball(int paddle_no, bool round_over, double time) {
     return ball;
 }
 
-struct ball make_ghost_ball(struct ball ball) {
+struct ball make_ghost_ball(struct ball ball, float difficulty) {
     float angle = atan2f(ball.velocity.y, ball.velocity.x);
     float speed = sqrtf((ball.velocity.y * ball.velocity.y) +
                         (ball.velocity.x * ball.velocity.x));
-    speed += rand_range(-40, 40);
+    float max_speed_difference = 80.0f * (1.0f - difficulty);
+    speed += frand_range(-max_speed_difference, max_speed_difference);
     ball.velocity.x = cosf(angle) * speed;
     ball.velocity.y = sinf(angle) * speed;
     return ball;
@@ -110,15 +112,15 @@ void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
     }
 
     if (velocity == 0) {
-        if (ghost->inactive) {
-            paddle->velocity = 0;
-        } else {
+        if (ghost->active) {
             paddle->velocity = ghost->velocity;
+        } else {
+            paddle->velocity = 0;
         }
         return;
     }
     paddle->velocity = velocity;
-    ghost->inactive = true;
+    ghost->active = false;
     input->last_input_timestamp = SDL_GetTicks();
     return;
 }
@@ -126,13 +128,13 @@ void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
 void check_input_inactivity(struct player_input input, struct ghost *ghost) {
     int timeout = 10000; // in ms
     if (SDL_GetTicks() > input.last_input_timestamp + timeout) {
-        ghost->inactive = false;
+        ghost->active = true;
     }
 }
 
 void set_ghost_velocity(struct ghost *ghost, struct paddle paddle,
                         struct ball ball) {
-    if (ghost->inactive) {
+    if (!ghost->active) {
         return;
     }
 
@@ -168,8 +170,8 @@ void update_paddle(struct paddle *paddle, double dt) {
         clamp(paddle->rect.y, 0.0f, LOGICAL_HEIGHT - paddle->rect.h);
 }
 
-void set_ghost_speed(struct ghost *ghost) {
-    ghost->speed = frand_range(0.80f, 0.85f);
+void set_ghost_speed(struct ghost *ghost, float difficulty) {
+    ghost->speed = fminf(0.70f + (difficulty * 20.0f), 0.90f);
 }
 
 void set_ghost_bias(struct ghost *ghost) {
@@ -247,7 +249,7 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
 
     // Increment speed if it hasn't reached the limit.
     if (speed < 540.0f) {
-        speed += 15.0f;
+        speed += 10.0f;
     }
 
     if (paddle->no == 1) {
@@ -265,11 +267,11 @@ void check_paddle_hit_ball(struct game *game) {
     if (!game->round_over) {
         if (paddle_intersects_ball(game->paddle_1, game->ball)) {
             bounce_ball_off_paddle(&game->ball, &game->paddle_1);
-            game->ghost_ball = make_ghost_ball(game->ball);
+            game->ghost_ball = make_ghost_ball(game->ball, game->difficulty);
             set_ghost_bias(&game->ghost_2);
         } else if (paddle_intersects_ball(game->paddle_2, game->ball)) {
             bounce_ball_off_paddle(&game->ball, &game->paddle_2);
-            game->ghost_ball = make_ghost_ball(game->ball);
+            game->ghost_ball = make_ghost_ball(game->ball, game->difficulty);
             set_ghost_bias(&game->ghost_1);
         } else {
             return;
@@ -299,7 +301,7 @@ void check_paddle_missed_ball(struct game *game) {
         return;
     }
 
-    game->ghost_ball = make_ghost_ball(game->ball);
+    game->ghost_ball = make_ghost_ball(game->ball, game->difficulty);
     set_ghost_idle_offset(&game->ghost_1);
     set_ghost_idle_offset(&game->ghost_2);
     game->events.paddle_missed_ball = true;
@@ -329,12 +331,24 @@ void check_round_over(struct game *game) {
 }
 
 void restart_round(struct game *game) {
+    if (game->round_over) {
+        if ((game->paddle_1.score == game->max_score &&
+             !game->ghost_1.active) ||
+            (game->paddle_2.score == game->max_score &&
+             !game->ghost_2.active) ||
+            (game->ghost_2.active && game->ghost_2.active)) {
+            // Only increase the difficulty of the game if a paddle controlled
+            // by a player wins the round or if the ghosts played against each
+            // other.
+            game->difficulty = fminf(game->difficulty + 0.2f, 1.0f);
+        }
+    }
     game->paddle_1.score = 0;
     game->paddle_2.score = 0;
-    set_ghost_speed(&game->ghost_1);
-    set_ghost_speed(&game->ghost_2);
+    set_ghost_speed(&game->ghost_1, game->difficulty);
+    set_ghost_speed(&game->ghost_2, game->difficulty);
     game->ball = make_ball(rand_range(1, 2), false, game->time);
-    game->ghost_ball = make_ghost_ball(game->ball);
+    game->ghost_ball = make_ghost_ball(game->ball, game->difficulty);
     game->round_over = false;
 }
 
