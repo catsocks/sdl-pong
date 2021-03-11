@@ -124,7 +124,7 @@ void check_paddle_controls(struct paddle *paddle, struct ghost *ghost,
 }
 
 void check_input_inactivity(struct player_input input, struct ghost *ghost) {
-    int timeout = 5000; // in ms
+    int timeout = 10000; // in ms
     if (SDL_GetTicks() > input.last_input_timestamp + timeout) {
         ghost->inactive = false;
     }
