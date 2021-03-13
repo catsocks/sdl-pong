@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
         .window = window,
         .renderer_wrapper =
             make_renderer_wrapper(renderer, LOGICAL_WIDTH, LOGICAL_HEIGHT),
-        .game = make_game(false),
+        .game = make_game(DEBUGGING),
         .tonegen = make_tonegen(audio_device_id, 2.5f),
         .current_time = SDL_GetPerformanceCounter(),
     };
