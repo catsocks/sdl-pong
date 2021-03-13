@@ -166,6 +166,9 @@ void set_ghost_velocity(struct ghost *ghost, struct paddle paddle,
     float ball_dir_factor = 1.0f;
     if ((ball.velocity.x > 0.0f && paddle.no == 1) ||
         (ball.velocity.x < 0.0f && paddle.no == 2)) {
+        // Ball is going in the opposite direction.
+        // TODO: Find a nicer way of smoothing out movement for when the
+        // position of the ghost ball gets updated when it hits the paddle.
         ball_dir_factor = 0.5f;
     }
 
