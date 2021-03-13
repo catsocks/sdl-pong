@@ -10,6 +10,10 @@
 #include "renderer.h"
 #include "tonegen.h"
 
+#ifndef DEBUGGING
+#define DEBUGGING false
+#endif
+
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
@@ -43,7 +47,7 @@ int main(int argc, char *argv[]) {
 
     srand(time(NULL));
 
-#ifndef NDEBUG
+#if DEBUGGING
     SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_DEBUG);
 #endif
 
