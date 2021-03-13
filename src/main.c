@@ -160,8 +160,8 @@ void main_loop(void *arg) {
 
     update_renderer_wrapper(&ctx->renderer_wrapper);
 
-    check_input_inactivity(ctx->player_1_input, &game->ghost_1);
-    check_input_inactivity(ctx->player_2_input, &game->ghost_2);
+    check_player_activity(game, ctx->player_1_input, &game->ghost_1);
+    check_player_activity(game, ctx->player_2_input, &game->ghost_2);
 
     set_ghost_velocity(&game->ghost_1, game->paddle_1, game->ghost_ball);
     set_ghost_velocity(&game->ghost_2, game->paddle_2, game->ghost_ball);
