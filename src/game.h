@@ -40,25 +40,6 @@ struct events {
     bool ball_hit_wall;
 };
 
-struct game {
-    bool cheats_enabled;
-    struct paddle paddle_1;
-    struct paddle paddle_2;
-    float ghosts_sharpness;
-    struct ghost ghost_1;
-    struct ghost ghost_2;
-    struct ball ball;
-    struct ball ghost_ball;
-    int max_score;
-    bool first_player_input;
-    bool paused;
-    double time;
-    bool debug_mode;
-    bool round_over;
-    uint32_t round_restart_time;
-    struct events events;
-};
-
 struct player_input {
     SDL_GameController *controller;
     SDL_TouchID touch_id;
@@ -68,7 +49,39 @@ struct player_input {
     uint32_t last_input_timestamp;
 };
 
-struct game make_game(bool cheats_enabled);
+struct game {
+    SDL_Window *window;
+    bool cheats_enabled;
+    struct tonegen tonegen;
+    struct paddle paddle_1;
+    struct paddle paddle_2;
+    float ghosts_sharpness;
+    struct ghost ghost_1;
+    struct ghost ghost_2;
+    struct ball ball;
+    struct ball ghost_ball;
+    int max_score;
+    struct player_input player_1_input;
+    struct player_input player_2_input;
+    bool first_player_input;
+    uint32_t last_center_finger_down_timestamp;
+    SDL_FingerID last_center_finger_down_finger_id;
+    bool paused;
+    bool debug_mode;
+    double time;
+    bool round_over;
+    uint32_t round_restart_time;
+    struct events events;
+};
+
+struct game make_game(SDL_Window *window, bool cheats_enabled);
+void check_controller_added_event(struct game *game, SDL_Event event);
+void check_controller_removed_event(struct game *game, SDL_Event event);
+void check_finger_down_event(struct game *game, SDL_Event event);
+void check_finger_up_event(struct game *game, SDL_Event event);
+void check_finger_motion_event(struct game *game, SDL_Event event);
+void check_keydown_event(struct game *game, SDL_Event event);
+void toggle_fullscreen(struct game *game);
 struct paddle make_paddle(int no);
 struct ghost make_ghost(float ghosts_sharpness);
 struct ball make_ball(int paddle_no, bool round_over, double t);
@@ -87,7 +100,7 @@ void update_ball(struct ball *ball, double dt, double t);
 void check_ball_hit_wall(struct game *game);
 void check_paddle_hit_ball(struct game *game);
 void check_paddle_missed_ball(struct game *game);
-void check_game_events(struct game *game, struct tonegen *tonegen);
+void check_game_events(struct game *game);
 void check_round_over(struct game *game);
 void restart_round(struct game *game);
 void check_round_restart_timeout(struct game *game);

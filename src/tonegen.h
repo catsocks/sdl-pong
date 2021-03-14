@@ -12,7 +12,6 @@
 extern const SDL_AudioSpec TONEGEN_AUDIO_SPEC;
 
 struct tonegen {
-    SDL_AudioDeviceID device_id;
     int amplitude;
     int freq;
     uint32_t sample_idx;
@@ -22,8 +21,7 @@ struct tonegen {
     bool mute;
 };
 
-struct tonegen make_tonegen(SDL_AudioDeviceID device_id,
-                            float volume_percentage);
+struct tonegen make_tonegen(float volume_percentage);
 void set_tonegen_tone(struct tonegen *gen, int freq, int duration_ms);
-void tonegen_generate(struct tonegen *gen);
-void tonegen_queue(struct tonegen *gen);
+void tonegen_generate(struct tonegen *gen, SDL_AudioDeviceID device_id);
+void tonegen_queue(struct tonegen *gen, SDL_AudioDeviceID device_id);

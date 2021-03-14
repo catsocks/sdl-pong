@@ -6,9 +6,11 @@ const int LOGICAL_HEIGHT = 600;
 const int NET_WIDTH = 5;
 const int NET_HEIGHT = 15;
 
-struct game make_game(bool cheats_enabled) {
+struct game make_game(SDL_Window *window, bool cheats_enabled) {
     struct game game = {0};
+    game.window = window;
     game.cheats_enabled = cheats_enabled;
+    game.tonegen = make_tonegen(2.5f);
     game.paddle_1 = make_paddle(1);
     game.paddle_2 = make_paddle(2);
     game.ghosts_sharpness = 1.0f;
@@ -18,6 +20,127 @@ struct game make_game(bool cheats_enabled) {
     game.ghost_ball = make_ghost_ball(game.ball, game.ghosts_sharpness);
     game.max_score = 11;
     return game;
+}
+
+void check_controller_added_event(struct game *game, SDL_Event event) {
+    if (game->player_1_input.controller == NULL) {
+        game->player_1_input.controller =
+            SDL_GameControllerOpen(event.cdevice.which);
+    } else if (game->player_2_input.controller == NULL) {
+        game->player_2_input.controller =
+            SDL_GameControllerOpen(event.cdevice.which);
+    }
+}
+
+void check_controller_removed_event(struct game *game, SDL_Event event) {
+    SDL_Joystick *joystick =
+        SDL_GameControllerGetJoystick(game->player_1_input.controller);
+    if (SDL_JoystickInstanceID(joystick) == event.cdevice.which) {
+        SDL_GameControllerClose(game->player_1_input.controller);
+        game->player_1_input.controller = NULL;
+        return;
+    }
+    joystick = SDL_GameControllerGetJoystick(game->player_2_input.controller);
+    if (SDL_JoystickInstanceID(joystick) == event.cdevice.which) {
+        SDL_GameControllerClose(game->player_2_input.controller);
+        game->player_2_input.controller = NULL;
+    }
+}
+
+void toggle_fullscreen(struct game *game) {
+    if (SDL_GetWindowFlags(game->window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
+        SDL_SetWindowFullscreen(game->window, 0);
+    } else {
+        SDL_SetWindowFullscreen(game->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+}
+
+void check_finger_down_event(struct game *game, SDL_Event event) {
+    if (event.tfinger.x < 0.3f) {
+        game->player_1_input.touch_id = event.tfinger.touchId;
+        game->player_1_input.finger_id = event.tfinger.fingerId;
+        game->player_1_input.finger_y = event.tfinger.y * LOGICAL_HEIGHT;
+        game->player_1_input.finger_down = true;
+    } else if (event.tfinger.x > 0.7f) {
+        game->player_2_input.touch_id = event.tfinger.touchId;
+        game->player_2_input.finger_id = event.tfinger.fingerId;
+        game->player_2_input.finger_y = event.tfinger.y * LOGICAL_HEIGHT;
+        game->player_2_input.finger_down = true;
+    } else {
+        unsigned time_since_last_finger_down =
+            event.tfinger.timestamp - game->last_center_finger_down_timestamp;
+        bool same_finger =
+            game->last_center_finger_down_finger_id == event.tfinger.fingerId;
+        unsigned max_delay = 500; // in ms
+        if (time_since_last_finger_down < max_delay && same_finger) {
+            toggle_fullscreen(game);
+        }
+        game->last_center_finger_down_timestamp = event.tfinger.timestamp;
+        game->last_center_finger_down_finger_id = event.tfinger.fingerId;
+    }
+}
+
+void check_finger_motion_event(struct game *game, SDL_Event event) {
+    if (game->player_1_input.touch_id == event.tfinger.touchId) {
+        if (game->player_1_input.finger_id == event.tfinger.fingerId) {
+            game->player_1_input.finger_y = event.tfinger.y * LOGICAL_HEIGHT;
+        }
+    }
+    if (game->player_2_input.touch_id == event.tfinger.touchId) {
+        if (game->player_2_input.finger_id == event.tfinger.fingerId) {
+            game->player_2_input.finger_y = event.tfinger.y * LOGICAL_HEIGHT;
+        }
+    }
+}
+
+void check_finger_up_event(struct game *game, SDL_Event event) {
+    if (game->player_1_input.touch_id == event.tfinger.touchId) {
+        if (game->player_1_input.finger_id == event.tfinger.fingerId) {
+            game->player_1_input.touch_id = 0;
+            game->player_1_input.finger_id = 0;
+            game->player_1_input.finger_down = false;
+        }
+    }
+    if (game->player_2_input.touch_id == event.tfinger.touchId) {
+        if (game->player_2_input.finger_id == event.tfinger.fingerId) {
+            game->player_2_input.touch_id = 0;
+            game->player_2_input.finger_id = 0;
+            game->player_2_input.finger_down = false;
+        }
+    }
+}
+
+void check_keydown_event(struct game *game, SDL_Event event) {
+    switch (event.key.keysym.sym) {
+    case SDLK_F11:
+        toggle_fullscreen(game);
+        break;
+    case SDLK_m:
+        game->tonegen.mute = !game->tonegen.mute;
+        break;
+    case SDLK_r:
+        restart_round(game);
+        break;
+    case SDLK_p:
+        game->paused = !game->paused;
+        break;
+    case SDLK_1:
+        if (game->cheats_enabled) {
+            game->paddle_1.score += 1;
+        }
+        break;
+    case SDLK_2:
+        if (game->cheats_enabled) {
+            game->paddle_2.score += 1;
+        }
+        break;
+    case SDLK_d:
+        if (event.key.keysym.mod & (KMOD_CTRL | KMOD_SHIFT)) {
+            // Ctrl + Shift + D
+            game->debug_mode = !game->debug_mode;
+        }
+        break;
+    }
 }
 
 struct paddle make_paddle(int no) {
@@ -322,13 +445,13 @@ void check_paddle_missed_ball(struct game *game) {
     game->events.paddle_missed_ball = true;
 }
 
-void check_game_events(struct game *game, struct tonegen *tonegen) {
+void check_game_events(struct game *game) {
     if (game->events.paddle_missed_ball) {
-        set_tonegen_tone(tonegen, 240, 510);
+        set_tonegen_tone(&game->tonegen, 240, 510);
     } else if (game->events.ball_hit_paddle) {
-        set_tonegen_tone(tonegen, 480, 35);
+        set_tonegen_tone(&game->tonegen, 480, 35);
     } else if (game->events.ball_hit_wall) {
-        set_tonegen_tone(tonegen, 240, 20);
+        set_tonegen_tone(&game->tonegen, 240, 20);
     }
 
     game->events = (struct events){0};

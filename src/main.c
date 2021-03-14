@@ -18,26 +18,14 @@ const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
 struct context {
-    SDL_Window *window;
-    struct renderer_wrapper renderer_wrapper;
-    bool quit_requested;
     struct game game;
-    struct tonegen tonegen;
+    struct renderer_wrapper renderer_wrapper;
+    SDL_AudioDeviceID audio_device_id;
+    bool quit_requested;
     uint64_t current_time;
-    struct player_input player_1_input;
-    struct player_input player_2_input;
-    uint32_t last_center_finger_down_timestamp;
-    SDL_FingerID last_center_finger_down_finger_id;
 };
 
 void main_loop(void *arg);
-void check_controller_added_event(struct context *ctx, SDL_Event event);
-void check_controller_removed_event(struct context *ctx, SDL_Event event);
-void check_finger_down_event(struct context *ctx, SDL_Event event);
-void check_finger_up_event(struct context *ctx, SDL_Event event);
-void check_finger_motion_event(struct context *ctx, SDL_Event event);
-void check_keydown_event(struct context *ctx, SDL_Event event);
-void toggle_fullscreen(struct context *ctx);
 
 int main(int argc, char *argv[]) {
     // Suppress unused variable warnings, SDL requires that main accept argc and
@@ -88,11 +76,10 @@ int main(int argc, char *argv[]) {
     }
 
     struct context ctx = {
-        .window = window,
+        .game = make_game(window, DEBUGGING),
         .renderer_wrapper =
             make_renderer_wrapper(renderer, LOGICAL_WIDTH, LOGICAL_HEIGHT),
-        .game = make_game(DEBUGGING),
-        .tonegen = make_tonegen(audio_device_id, 2.5f),
+        .audio_device_id = audio_device_id,
         .current_time = SDL_GetPerformanceCounter(),
     };
 
@@ -108,8 +95,8 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-    SDL_GameControllerClose(ctx.player_1_input.controller);
-    SDL_GameControllerClose(ctx.player_2_input.controller);
+    SDL_GameControllerClose(ctx.game.player_1_input.controller);
+    SDL_GameControllerClose(ctx.game.player_2_input.controller);
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -138,40 +125,40 @@ void main_loop(void *arg) {
             ctx->quit_requested = true;
             break;
         case SDL_KEYDOWN:
-            check_keydown_event(ctx, event);
+            check_keydown_event(game, event);
             break;
         case SDL_FINGERDOWN:
-            check_finger_down_event(ctx, event);
+            check_finger_down_event(game, event);
             break;
         case SDL_FINGERUP:
-            check_finger_up_event(ctx, event);
+            check_finger_up_event(game, event);
             break;
         case SDL_FINGERMOTION:
-            check_finger_motion_event(ctx, event);
+            check_finger_motion_event(game, event);
             break;
         case SDL_CONTROLLERDEVICEADDED:
-            check_controller_added_event(ctx, event);
+            check_controller_added_event(game, event);
             break;
         case SDL_CONTROLLERDEVICEREMOVED:
-            check_controller_removed_event(ctx, event);
+            check_controller_removed_event(game, event);
             break;
         }
     }
 
     update_renderer_wrapper(&ctx->renderer_wrapper);
 
-    check_player_activity(game, ctx->player_1_input, &game->ghost_1);
-    check_player_activity(game, ctx->player_2_input, &game->ghost_2);
+    check_player_activity(game, game->player_1_input, &game->ghost_1);
+    check_player_activity(game, game->player_2_input, &game->ghost_2);
 
     set_ghost_velocity(&game->ghost_1, game->paddle_1, game->ghost_ball);
     set_ghost_velocity(&game->ghost_2, game->paddle_2, game->ghost_ball);
 
     check_paddle_controls(&game->paddle_1, &game->ghost_1,
-                          &ctx->player_1_input);
+                          &game->player_1_input);
     check_paddle_controls(&game->paddle_2, &game->ghost_2,
-                          &ctx->player_2_input);
+                          &game->player_2_input);
 
-    while (!ctx->game.paused && frame_time > 0.0) {
+    while (!game->paused && frame_time > 0.0) {
         double max_frame_time = 1 / 60.0;
         double delta_time = fmin(frame_time, max_frame_time);
 
@@ -191,7 +178,7 @@ void main_loop(void *arg) {
         game->time += delta_time;
     }
 
-    check_game_events(&ctx->game, &ctx->tonegen);
+    check_game_events(game);
 
     SDL_SetRenderDrawColor(ctx->renderer_wrapper.renderer, 0, 0, 0,
                            255); // black
@@ -211,129 +198,8 @@ void main_loop(void *arg) {
         debug_render_ghost_ball(ctx->renderer_wrapper, game->ghost_ball);
     }
 
-    tonegen_generate(&ctx->tonegen);
-    tonegen_queue(&ctx->tonegen);
+    tonegen_generate(&game->tonegen, ctx->audio_device_id);
+    tonegen_queue(&game->tonegen, ctx->audio_device_id);
 
     SDL_RenderPresent(ctx->renderer_wrapper.renderer);
-}
-
-void check_controller_added_event(struct context *ctx, SDL_Event event) {
-    if (ctx->player_1_input.controller == NULL) {
-        ctx->player_1_input.controller =
-            SDL_GameControllerOpen(event.cdevice.which);
-    } else if (ctx->player_2_input.controller == NULL) {
-        ctx->player_2_input.controller =
-            SDL_GameControllerOpen(event.cdevice.which);
-    }
-}
-
-void check_controller_removed_event(struct context *ctx, SDL_Event event) {
-    SDL_Joystick *joystick =
-        SDL_GameControllerGetJoystick(ctx->player_1_input.controller);
-    if (SDL_JoystickInstanceID(joystick) == event.cdevice.which) {
-        SDL_GameControllerClose(ctx->player_1_input.controller);
-        ctx->player_1_input.controller = NULL;
-        return;
-    }
-    joystick = SDL_GameControllerGetJoystick(ctx->player_2_input.controller);
-    if (SDL_JoystickInstanceID(joystick) == event.cdevice.which) {
-        SDL_GameControllerClose(ctx->player_2_input.controller);
-        ctx->player_2_input.controller = NULL;
-    }
-}
-
-void toggle_fullscreen(struct context *ctx) {
-    if (SDL_GetWindowFlags(ctx->window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
-        SDL_SetWindowFullscreen(ctx->window, 0);
-    } else {
-        SDL_SetWindowFullscreen(ctx->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-    }
-}
-
-void check_finger_down_event(struct context *ctx, SDL_Event event) {
-    if (event.tfinger.x < 0.3f) {
-        ctx->player_1_input.touch_id = event.tfinger.touchId;
-        ctx->player_1_input.finger_id = event.tfinger.fingerId;
-        ctx->player_1_input.finger_y = event.tfinger.y * WINDOW_HEIGHT;
-        ctx->player_1_input.finger_down = true;
-    } else if (event.tfinger.x > 0.7f) {
-        ctx->player_2_input.touch_id = event.tfinger.touchId;
-        ctx->player_2_input.finger_id = event.tfinger.fingerId;
-        ctx->player_2_input.finger_y = event.tfinger.y * WINDOW_HEIGHT;
-        ctx->player_2_input.finger_down = true;
-    } else {
-        unsigned time_since_last_finger_down =
-            event.tfinger.timestamp - ctx->last_center_finger_down_timestamp;
-        bool same_finger =
-            ctx->last_center_finger_down_finger_id == event.tfinger.fingerId;
-        unsigned max_delay = 500; // in ms
-        if (time_since_last_finger_down < max_delay && same_finger) {
-            toggle_fullscreen(ctx);
-        }
-        ctx->last_center_finger_down_timestamp = event.tfinger.timestamp;
-        ctx->last_center_finger_down_finger_id = event.tfinger.fingerId;
-    }
-}
-
-void check_finger_motion_event(struct context *ctx, SDL_Event event) {
-    if (ctx->player_1_input.touch_id == event.tfinger.touchId) {
-        if (ctx->player_1_input.finger_id == event.tfinger.fingerId) {
-            ctx->player_1_input.finger_y = event.tfinger.y * WINDOW_HEIGHT;
-        }
-    }
-    if (ctx->player_2_input.touch_id == event.tfinger.touchId) {
-        if (ctx->player_2_input.finger_id == event.tfinger.fingerId) {
-            ctx->player_2_input.finger_y = event.tfinger.y * WINDOW_HEIGHT;
-        }
-    }
-}
-
-void check_finger_up_event(struct context *ctx, SDL_Event event) {
-    if (ctx->player_1_input.touch_id == event.tfinger.touchId) {
-        if (ctx->player_1_input.finger_id == event.tfinger.fingerId) {
-            ctx->player_1_input.touch_id = 0;
-            ctx->player_1_input.finger_id = 0;
-            ctx->player_1_input.finger_down = false;
-        }
-    }
-    if (ctx->player_2_input.touch_id == event.tfinger.touchId) {
-        if (ctx->player_2_input.finger_id == event.tfinger.fingerId) {
-            ctx->player_2_input.touch_id = 0;
-            ctx->player_2_input.finger_id = 0;
-            ctx->player_2_input.finger_down = false;
-        }
-    }
-}
-
-void check_keydown_event(struct context *ctx, SDL_Event event) {
-    switch (event.key.keysym.sym) {
-    case SDLK_F11:
-        toggle_fullscreen(ctx);
-        break;
-    case SDLK_m:
-        ctx->tonegen.mute = !ctx->tonegen.mute;
-        break;
-    case SDLK_r:
-        restart_round(&ctx->game);
-        break;
-    case SDLK_p:
-        ctx->game.paused = !ctx->game.paused;
-        break;
-    case SDLK_1:
-        if (ctx->game.cheats_enabled) {
-            ctx->game.paddle_1.score += 1;
-        }
-        break;
-    case SDLK_2:
-        if (ctx->game.cheats_enabled) {
-            ctx->game.paddle_2.score += 1;
-        }
-        break;
-    case SDLK_d:
-        if (event.key.keysym.mod & (KMOD_CTRL | KMOD_SHIFT)) {
-            // Ctrl + Shift + D
-            ctx->game.debug_mode = !ctx->game.debug_mode;
-        }
-        break;
-    }
 }
