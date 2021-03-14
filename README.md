@@ -7,7 +7,7 @@ cross-platform multimedia library.
 The window is resizable, desktop fullscreen can be toggled with the keyboard,
 gamepad and touch controls are supported, and you can play it natively on
 Windows, Linux and macOS or in a web browser
-[right now](https://catsocks.github.io/tennis-sdl).
+[here](https://catsocks.github.io/tennis-sdl).
 
 You can watch a video of 1972 Pong on Youtube
 [here](https://www.youtube.com/watch?v=fiShX2pTz9A).
@@ -59,7 +59,8 @@ _mingw32-cmake_ in place of the default CMake executable.
 
 Everything with the exception of the files mentioned in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) is dedicated to the public
-domain under the CC0 1.0 Universal license included in the LICENSE.md file.
+domain under the CC0 1.0 Universal license included in the
+[LICENSE.md](LICENSE.md) file.
 
 ## Acknowledgements
 
