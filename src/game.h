@@ -81,7 +81,6 @@ void check_finger_down_event(struct game *game, SDL_Event event);
 void check_finger_up_event(struct game *game, SDL_Event event);
 void check_finger_motion_event(struct game *game, SDL_Event event);
 void check_keydown_event(struct game *game, SDL_Event event);
-void toggle_fullscreen(struct game *game);
 struct paddle make_paddle(int no);
 struct ghost make_ghost(float ghosts_sharpness);
 struct ball make_ball(int paddle_no, bool round_over, double t);
@@ -93,17 +92,13 @@ void check_player_activity(struct game *game, struct player_input input,
 void set_ghost_velocity(struct ghost *ghost, struct paddle paddle,
                         struct ball ball);
 void update_paddle(struct paddle *paddle, double dt);
-void set_ghost_speed(struct ghost *ghost, float ghosts_sharpness);
-void set_ghost_bias(struct ghost *ghost);
-void set_ghost_idle_offset(struct ghost *ghost);
 void update_ball(struct ball *ball, double dt, double t);
 void check_ball_hit_wall(struct game *game);
-void check_paddle_hit_ball(struct game *game);
 void check_paddle_missed_ball(struct game *game);
-void check_game_events(struct game *game);
+void check_paddle_hit_ball(struct game *game);
 void check_round_over(struct game *game);
-void restart_round(struct game *game);
 void check_round_restart_timeout(struct game *game);
+void check_game_events(struct game *game);
 void render_score(struct renderer_wrapper renderer, struct paddle paddle);
 void render_net(struct renderer_wrapper renderer);
 void render_paddle(struct renderer_wrapper renderer, struct game *game,

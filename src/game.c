@@ -6,6 +6,14 @@ const int LOGICAL_HEIGHT = 600;
 const int NET_WIDTH = 5;
 const int NET_HEIGHT = 15;
 
+static void toggle_fullscreen(struct game *game);
+static void set_ghost_bias(struct ghost *ghost);
+static void set_ghost_speed(struct ghost *ghost, float sharpness);
+static void set_ghost_idle_offset(struct ghost *ghost);
+static bool paddle_intersects_ball(struct paddle paddle, struct ball ball);
+static void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle);
+static void restart_round(struct game *game);
+
 struct game make_game(SDL_Window *window, bool cheats_enabled) {
     struct game game = {0};
     game.window = window;
@@ -47,7 +55,7 @@ void check_controller_removed_event(struct game *game, SDL_Event event) {
     }
 }
 
-void toggle_fullscreen(struct game *game) {
+static void toggle_fullscreen(struct game *game) {
     if (SDL_GetWindowFlags(game->window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
         SDL_SetWindowFullscreen(game->window, 0);
     } else {
@@ -161,6 +169,14 @@ struct ghost make_ghost(float sharpness) {
     set_ghost_speed(&ghost, sharpness);
     set_ghost_bias(&ghost);
     return ghost;
+}
+
+static void set_ghost_speed(struct ghost *ghost, float sharpness) {
+    ghost->speed = fminf(0.70f + (sharpness * 25.0f), 0.95f);
+}
+
+static void set_ghost_bias(struct ghost *ghost) {
+    ghost->bias = frand_range(-1.0f, 1.0f);
 }
 
 // Return a ball that is on the side of the net of the given paddle with its
@@ -306,19 +322,6 @@ void update_paddle(struct paddle *paddle, double dt) {
         clamp(paddle->rect.y, 0.0f, LOGICAL_HEIGHT - paddle->rect.h);
 }
 
-void set_ghost_speed(struct ghost *ghost, float sharpness) {
-    ghost->speed = fminf(0.70f + (sharpness * 25.0f), 0.95f);
-}
-
-void set_ghost_bias(struct ghost *ghost) {
-    ghost->bias = frand_range(-1.0f, 1.0f);
-}
-
-void set_ghost_idle_offset(struct ghost *ghost) {
-    int max_distance = LOGICAL_HEIGHT / 8;
-    ghost->idle_offset = rand_range(-max_distance, max_distance);
-}
-
 void update_ball(struct ball *ball, double dt, double t) {
     // The ball will always bounce off vertical walls.
     if (ball->rect.y < 0.0f || ball->rect.y + ball->rect.h > LOGICAL_HEIGHT) {
@@ -356,9 +359,60 @@ void check_ball_hit_wall(struct game *game) {
     }
 }
 
+void check_paddle_missed_ball(struct game *game) {
+    if (game->ball.rect.x + game->ball.rect.w < 0) {
+        // Paddle 1 missed the ball.
+        game->paddle_2.score++;
+        if (game->paddle_2.score == game->max_score) {
+            game->ball = make_ball(2, true, game->time);
+            return;
+        }
+        game->ball = make_ball(1, false, game->time);
+    } else if (game->ball.rect.x > LOGICAL_WIDTH) {
+        // Paddle 2 missed the ball.
+        game->paddle_1.score++;
+        if (game->paddle_1.score == game->max_score) {
+            game->ball = make_ball(1, true, game->time);
+            return;
+        }
+        game->ball = make_ball(2, false, game->time);
+    } else {
+        return;
+    }
+
+    game->ghost_ball = make_ghost_ball(game->ball, game->ghosts_sharpness);
+    set_ghost_idle_offset(&game->ghost_1);
+    set_ghost_idle_offset(&game->ghost_2);
+    game->events.paddle_missed_ball = true;
+}
+
+static void set_ghost_idle_offset(struct ghost *ghost) {
+    int max_distance = LOGICAL_HEIGHT / 8;
+    ghost->idle_offset = rand_range(-max_distance, max_distance);
+}
+
+void check_paddle_hit_ball(struct game *game) {
+    if (!game->round_over) {
+        if (paddle_intersects_ball(game->paddle_1, game->ball)) {
+            bounce_ball_off_paddle(&game->ball, &game->paddle_1);
+            game->ghost_ball =
+                make_ghost_ball(game->ball, game->ghosts_sharpness);
+            set_ghost_bias(&game->ghost_2);
+        } else if (paddle_intersects_ball(game->paddle_2, game->ball)) {
+            bounce_ball_off_paddle(&game->ball, &game->paddle_2);
+            game->ghost_ball =
+                make_ghost_ball(game->ball, game->ghosts_sharpness);
+            set_ghost_bias(&game->ghost_1);
+        } else {
+            return;
+        }
+        game->events.ball_hit_paddle = true;
+    }
+}
+
 // Return whether there is an intersection between the horizontal half of a
 // paddle facing the net, and the ball.
-bool paddle_intersects_ball(struct paddle paddle, struct ball ball) {
+static bool paddle_intersects_ball(struct paddle paddle, struct ball ball) {
     bool y_intersect = paddle.rect.y < ball.rect.y + ball.rect.h &&
                        paddle.rect.y + paddle.rect.h > ball.rect.y;
     if (paddle.no == 1) {
@@ -370,7 +424,7 @@ bool paddle_intersects_ball(struct paddle paddle, struct ball ball) {
            paddle.rect.x + (paddle.rect.w / 2.0f) > ball.rect.x && y_intersect;
 }
 
-void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
+static void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
     // Relative to the center of the paddle and the ball.
     float intersect = paddle->rect.y + (paddle->rect.h / 2.0f) - ball->rect.y -
                       (ball->rect.h / 2.0f);
@@ -399,64 +453,6 @@ void bounce_ball_off_paddle(struct ball *ball, struct paddle *paddle) {
     ball->velocity.y = -sinf(bounce_angle) * speed;
 }
 
-void check_paddle_hit_ball(struct game *game) {
-    if (!game->round_over) {
-        if (paddle_intersects_ball(game->paddle_1, game->ball)) {
-            bounce_ball_off_paddle(&game->ball, &game->paddle_1);
-            game->ghost_ball =
-                make_ghost_ball(game->ball, game->ghosts_sharpness);
-            set_ghost_bias(&game->ghost_2);
-        } else if (paddle_intersects_ball(game->paddle_2, game->ball)) {
-            bounce_ball_off_paddle(&game->ball, &game->paddle_2);
-            game->ghost_ball =
-                make_ghost_ball(game->ball, game->ghosts_sharpness);
-            set_ghost_bias(&game->ghost_1);
-        } else {
-            return;
-        }
-        game->events.ball_hit_paddle = true;
-    }
-}
-
-void check_paddle_missed_ball(struct game *game) {
-    if (game->ball.rect.x + game->ball.rect.w < 0) {
-        // Paddle 1 missed the ball.
-        game->paddle_2.score++;
-        if (game->paddle_2.score == game->max_score) {
-            game->ball = make_ball(2, true, game->time);
-            return;
-        }
-        game->ball = make_ball(1, false, game->time);
-    } else if (game->ball.rect.x > LOGICAL_WIDTH) {
-        // Paddle 2 missed the ball.
-        game->paddle_1.score++;
-        if (game->paddle_1.score == game->max_score) {
-            game->ball = make_ball(1, true, game->time);
-            return;
-        }
-        game->ball = make_ball(2, false, game->time);
-    } else {
-        return;
-    }
-
-    game->ghost_ball = make_ghost_ball(game->ball, game->ghosts_sharpness);
-    set_ghost_idle_offset(&game->ghost_1);
-    set_ghost_idle_offset(&game->ghost_2);
-    game->events.paddle_missed_ball = true;
-}
-
-void check_game_events(struct game *game) {
-    if (game->events.paddle_missed_ball) {
-        set_tonegen_tone(&game->tonegen, 240, 510);
-    } else if (game->events.ball_hit_paddle) {
-        set_tonegen_tone(&game->tonegen, 480, 35);
-    } else if (game->events.ball_hit_wall) {
-        set_tonegen_tone(&game->tonegen, 240, 20);
-    }
-
-    game->events = (struct events){0};
-}
-
 void check_round_over(struct game *game) {
     if (!game->round_over && (game->paddle_1.score == game->max_score ||
                               game->paddle_2.score == game->max_score)) {
@@ -468,7 +464,13 @@ void check_round_over(struct game *game) {
     }
 }
 
-void restart_round(struct game *game) {
+void check_round_restart_timeout(struct game *game) {
+    if (game->round_over && game->time >= game->round_restart_time) {
+        restart_round(game);
+    }
+}
+
+static void restart_round(struct game *game) {
     if (game->round_over) {
         if ((game->paddle_1.score == game->max_score &&
              !game->ghost_1.active) ||
@@ -490,10 +492,16 @@ void restart_round(struct game *game) {
     game->round_over = false;
 }
 
-void check_round_restart_timeout(struct game *game) {
-    if (game->round_over && game->time >= game->round_restart_time) {
-        restart_round(game);
+void check_game_events(struct game *game) {
+    if (game->events.paddle_missed_ball) {
+        set_tonegen_tone(&game->tonegen, 240, 510);
+    } else if (game->events.ball_hit_paddle) {
+        set_tonegen_tone(&game->tonegen, 480, 35);
+    } else if (game->events.ball_hit_wall) {
+        set_tonegen_tone(&game->tonegen, 240, 20);
     }
+
+    game->events = (struct events){0};
 }
 
 void render_score(struct renderer_wrapper renderer, struct paddle paddle) {
