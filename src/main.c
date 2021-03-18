@@ -145,8 +145,6 @@ void main_loop(void *arg) {
         }
     }
 
-    update_renderer_wrapper(&ctx->renderer);
-
     check_player_activity(game, game->player_1_input, &game->ghost_1);
     check_player_activity(game, game->player_2_input, &game->ghost_2);
 
