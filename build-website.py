@@ -52,9 +52,6 @@ if __name__ == "__main__":
     for name in ("game.html", "game.js", "game.wasm"):
         shutil.copyfile(game_path / name, build_path / name)
 
-    for name in ("screenshot.png", "screenshot-2-by-1.png"):
-        shutil.copyfile(name, build_path / name)
-
     for file in ("index.html", "game.html"):
         path = build_path / file
         text = path.read_text().replace(r"{{url}}", url)

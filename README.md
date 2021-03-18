@@ -14,7 +14,7 @@ You can watch a video of 1972 Pong on Youtube
 
 ## Screenshot
 
-![Screenshot](screenshot.png)
+![Screenshot](assets/screenshot.png)
 
 ## Controls
 
