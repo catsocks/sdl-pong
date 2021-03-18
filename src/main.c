@@ -19,7 +19,7 @@ const int WINDOW_HEIGHT = 600;
 
 struct context {
     struct game game;
-    struct renderer_wrapper renderer_wrapper;
+    struct renderer_wrapper renderer;
     SDL_AudioDeviceID audio_device_id;
     bool quit_requested;
     uint64_t current_time;
@@ -77,13 +77,13 @@ int main(int argc, char *argv[]) {
 
     struct context ctx = {
         .game = make_game(window, DEBUGGING),
-        .renderer_wrapper =
+        .renderer =
             make_renderer_wrapper(renderer, LOGICAL_WIDTH, LOGICAL_HEIGHT),
         .audio_device_id = audio_device_id,
         .current_time = SDL_GetPerformanceCounter(),
     };
 
-    SDL_AddEventWatch(renderer_wrapper_event_watch, &ctx.renderer_wrapper);
+    SDL_AddEventWatch(renderer_wrapper_event_watch, &ctx.renderer);
 
     SDL_ShowWindow(window);
 
@@ -145,7 +145,7 @@ void main_loop(void *arg) {
         }
     }
 
-    update_renderer_wrapper(&ctx->renderer_wrapper);
+    update_renderer_wrapper(&ctx->renderer);
 
     check_player_activity(game, game->player_1_input, &game->ghost_1);
     check_player_activity(game, game->player_2_input, &game->ghost_2);
@@ -180,26 +180,26 @@ void main_loop(void *arg) {
 
     check_game_events(game);
 
-    SDL_SetRenderDrawColor(ctx->renderer_wrapper.renderer, 0, 0, 0,
+    SDL_SetRenderDrawColor(ctx->renderer.renderer, 0, 0, 0,
                            255); // black
-    SDL_RenderClear(ctx->renderer_wrapper.renderer);
+    SDL_RenderClear(ctx->renderer.renderer);
 
-    SDL_SetRenderDrawColor(ctx->renderer_wrapper.renderer, 255, 255, 255,
+    SDL_SetRenderDrawColor(ctx->renderer.renderer, 255, 255, 255,
                            255); // white
 
-    render_score(ctx->renderer_wrapper, game->paddle_1);
-    render_score(ctx->renderer_wrapper, game->paddle_2);
+    render_score(ctx->renderer, game->paddle_1);
+    render_score(ctx->renderer, game->paddle_2);
 
-    render_net(ctx->renderer_wrapper);
-    render_paddle(ctx->renderer_wrapper, game, game->paddle_1);
-    render_paddle(ctx->renderer_wrapper, game, game->paddle_2);
-    render_ball(ctx->renderer_wrapper, game->ball);
+    render_net(ctx->renderer);
+    render_paddle(ctx->renderer, game, game->paddle_1);
+    render_paddle(ctx->renderer, game, game->paddle_2);
+    render_ball(ctx->renderer, game->ball);
     if (game->debug_mode) {
-        debug_render_ghost_ball(ctx->renderer_wrapper, game->ghost_ball);
+        debug_render_ghost_ball(ctx->renderer, game->ghost_ball);
     }
 
     tonegen_generate(&game->tonegen, ctx->audio_device_id);
     tonegen_queue(&game->tonegen, ctx->audio_device_id);
 
-    SDL_RenderPresent(ctx->renderer_wrapper.renderer);
+    SDL_RenderPresent(ctx->renderer.renderer);
 }

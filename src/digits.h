@@ -4,5 +4,5 @@
 
 #include "renderer.h"
 
-void render_digits(struct renderer_wrapper renderer_wrapper,
-                   SDL_FPoint position, int height, int number);
+void render_digits(struct renderer_wrapper renderer, SDL_FPoint position,
+                   int height, int number);

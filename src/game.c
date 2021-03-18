@@ -496,10 +496,9 @@ void check_round_restart_timeout(struct game *game) {
     }
 }
 
-void render_score(struct renderer_wrapper renderer_wrapper,
-                  struct paddle paddle) {
+void render_score(struct renderer_wrapper renderer, struct paddle paddle) {
     render_digits(
-        renderer_wrapper,
+        renderer,
         (SDL_FPoint){
             .x = ((paddle.no == 1) ? (LOGICAL_WIDTH / 2.0f) : LOGICAL_WIDTH) -
                  100.0f,
@@ -509,7 +508,7 @@ void render_score(struct renderer_wrapper renderer_wrapper,
         paddle.score);
 }
 
-void render_net(struct renderer_wrapper renderer_wrapper) {
+void render_net(struct renderer_wrapper renderer) {
     for (int y = 0; y < LOGICAL_HEIGHT; y += NET_HEIGHT * 2) {
         SDL_FRect rect = {
             .x = (LOGICAL_WIDTH - NET_WIDTH) / 2.0f,
@@ -517,31 +516,31 @@ void render_net(struct renderer_wrapper renderer_wrapper) {
             .w = NET_WIDTH,
             .h = NET_HEIGHT,
         };
-        rect = scale_frect(renderer_wrapper, rect);
-        SDL_RenderFillRectF(renderer_wrapper.renderer, &rect);
+        rect = scale_frect(renderer, rect);
+        SDL_RenderFillRectF(renderer.renderer, &rect);
     }
 }
 
-void render_paddle(struct renderer_wrapper renderer_wrapper, struct game *game,
+void render_paddle(struct renderer_wrapper renderer, struct game *game,
                    struct paddle paddle) {
     if (!game->round_over) {
-        SDL_FRect rect = scale_frect(renderer_wrapper, paddle.rect);
-        SDL_RenderFillRectF(renderer_wrapper.renderer, &rect);
+        SDL_FRect rect = scale_frect(renderer, paddle.rect);
+        SDL_RenderFillRectF(renderer.renderer, &rect);
     }
 }
 
-void render_ball(struct renderer_wrapper renderer_wrapper, struct ball ball) {
+void render_ball(struct renderer_wrapper renderer, struct ball ball) {
     if (ball.served) {
-        SDL_FRect rect = scale_frect(renderer_wrapper, ball.rect);
-        SDL_RenderFillRectF(renderer_wrapper.renderer, &rect);
+        SDL_FRect rect = scale_frect(renderer, ball.rect);
+        SDL_RenderFillRectF(renderer.renderer, &rect);
     }
 }
 
-void debug_render_ghost_ball(struct renderer_wrapper renderer_wrapper,
+void debug_render_ghost_ball(struct renderer_wrapper renderer,
                              struct ball ball) {
     SDL_Color c;
-    SDL_GetRenderDrawColor(renderer_wrapper.renderer, &c.r, &c.g, &c.b, &c.a);
-    SDL_SetRenderDrawColor(renderer_wrapper.renderer, 0, 255, 0, 255); // green
-    render_ball(renderer_wrapper, ball);
-    SDL_SetRenderDrawColor(renderer_wrapper.renderer, c.r, c.g, c.b, c.a);
+    SDL_GetRenderDrawColor(renderer.renderer, &c.r, &c.g, &c.b, &c.a);
+    SDL_SetRenderDrawColor(renderer.renderer, 0, 255, 0, 255); // green
+    render_ball(renderer, ball);
+    SDL_SetRenderDrawColor(renderer.renderer, c.r, c.g, c.b, c.a);
 }

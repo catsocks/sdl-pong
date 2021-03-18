@@ -104,11 +104,10 @@ void check_game_events(struct game *game);
 void check_round_over(struct game *game);
 void restart_round(struct game *game);
 void check_round_restart_timeout(struct game *game);
-void render_score(struct renderer_wrapper renderer_wrapper,
-                  struct paddle paddle);
-void render_net(struct renderer_wrapper renderer_wrapper);
-void render_paddle(struct renderer_wrapper renderer_wrapper, struct game *game,
+void render_score(struct renderer_wrapper renderer, struct paddle paddle);
+void render_net(struct renderer_wrapper renderer);
+void render_paddle(struct renderer_wrapper renderer, struct game *game,
                    struct paddle paddle);
-void render_ball(struct renderer_wrapper renderer_wrapper, struct ball ball);
-void debug_render_ghost_ball(struct renderer_wrapper renderer_wrapper,
+void render_ball(struct renderer_wrapper renderer, struct ball ball);
+void debug_render_ghost_ball(struct renderer_wrapper renderer,
                              struct ball ball);
