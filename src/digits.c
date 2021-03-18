@@ -130,13 +130,13 @@ static void render_digit(struct renderer_wrapper renderer, SDL_FPoint position,
         p1.y += position.y + scale_factor - (line_spread / 2.0f);
         p2.y += position.y + scale_factor - (line_spread / 2.0f);
 
-        SDL_FRect rect =
-            scale_frect(renderer, (SDL_FRect){
-                                      .x = p1.x,
-                                      .y = p1.y,
-                                      .w = line_spread + (p2.x - p1.x),
-                                      .h = line_spread + (p2.y - p1.y),
-                                  });
+        SDL_FRect rect = {
+            .x = p1.x,
+            .y = p1.y,
+            .w = line_spread + (p2.x - p1.x),
+            .h = line_spread + (p2.y - p1.y),
+        };
+        rect = renderer_wrapper_scale_frect(renderer, rect);
         SDL_RenderFillRectF(renderer.renderer, &rect);
     }
 }

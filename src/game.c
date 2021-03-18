@@ -524,7 +524,7 @@ void render_net(struct renderer_wrapper renderer) {
             .w = NET_WIDTH,
             .h = NET_HEIGHT,
         };
-        rect = scale_frect(renderer, rect);
+        rect = renderer_wrapper_scale_frect(renderer, rect);
         SDL_RenderFillRectF(renderer.renderer, &rect);
     }
 }
@@ -532,14 +532,14 @@ void render_net(struct renderer_wrapper renderer) {
 void render_paddle(struct renderer_wrapper renderer, struct game *game,
                    struct paddle paddle) {
     if (!game->round_over) {
-        SDL_FRect rect = scale_frect(renderer, paddle.rect);
+        SDL_FRect rect = renderer_wrapper_scale_frect(renderer, paddle.rect);
         SDL_RenderFillRectF(renderer.renderer, &rect);
     }
 }
 
 void render_ball(struct renderer_wrapper renderer, struct ball ball) {
     if (ball.served) {
-        SDL_FRect rect = scale_frect(renderer, ball.rect);
+        SDL_FRect rect = renderer_wrapper_scale_frect(renderer, ball.rect);
         SDL_RenderFillRectF(renderer.renderer, &rect);
     }
 }

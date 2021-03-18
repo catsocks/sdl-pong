@@ -75,7 +75,8 @@ void update_renderer_wrapper(struct renderer_wrapper *wrapper) {
         (wrapper->output_size.h - (wrapper->viewport.h)) / 2.0;
 }
 
-SDL_FRect scale_frect(struct renderer_wrapper wrapper, SDL_FRect rect) {
+SDL_FRect renderer_wrapper_scale_frect(struct renderer_wrapper wrapper,
+                                       SDL_FRect rect) {
     rect.x *= wrapper.scale;
     rect.y *= wrapper.scale;
     rect.w *= wrapper.scale;

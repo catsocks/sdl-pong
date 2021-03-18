@@ -17,4 +17,5 @@ struct renderer_wrapper make_renderer_wrapper(SDL_Renderer *renderer,
                                               int logical_height);
 int renderer_wrapper_event_watch(void *userdata, SDL_Event *event);
 void update_renderer_wrapper(struct renderer_wrapper *wrapper);
-SDL_FRect scale_frect(struct renderer_wrapper wrapper, SDL_FRect rect);
+SDL_FRect renderer_wrapper_scale_frect(struct renderer_wrapper wrapper,
+                                       SDL_FRect rect);
