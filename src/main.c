@@ -180,12 +180,10 @@ void main_loop(void *arg) {
 
     check_game_events(game);
 
-    SDL_SetRenderDrawColor(ctx->renderer.renderer, 0, 0, 0,
-                           255); // black
+    SDL_SetRenderDrawColor(ctx->renderer.renderer, 0, 0, 0, 255);
     SDL_RenderClear(ctx->renderer.renderer);
 
-    SDL_SetRenderDrawColor(ctx->renderer.renderer, 255, 255, 255,
-                           255); // white
+    SDL_SetRenderDrawColor(ctx->renderer.renderer, 255, 255, 255, 255);
 
     render_score(ctx->renderer, game->paddle_1);
     render_score(ctx->renderer, game->paddle_2);

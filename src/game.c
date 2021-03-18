@@ -548,7 +548,7 @@ void debug_render_ghost_ball(struct renderer_wrapper renderer,
                              struct ball ball) {
     SDL_Color c;
     SDL_GetRenderDrawColor(renderer.renderer, &c.r, &c.g, &c.b, &c.a);
-    SDL_SetRenderDrawColor(renderer.renderer, 0, 255, 0, 255); // green
+    SDL_SetRenderDrawColor(renderer.renderer, 0, 255, 0, 255);
     render_ball(renderer, ball);
     SDL_SetRenderDrawColor(renderer.renderer, c.r, c.g, c.b, c.a);
 }
